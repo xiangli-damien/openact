@@ -1,0 +1,28 @@
+# GSM8K - Grade-school math (8K problems)
+# Source: openai/gsm8k
+# Parser: numeric | Answer prefix: "Answer"
+
+variants:
+  zot:
+    template: |
+      Solve this math problem. Give the reasoning steps before giving the final answer on the last line by itself in the format of "Answer:". Do not add anything other than the integer answer after "Answer:".
+
+      Question:
+      {question}
+    answer_prefix: "Answer"
+    description: "Zero-shot-of-thought with strict integer answer format."
+
+  direct:
+    template: |
+      Problem: {question}
+
+      The last line of your response should be of the following format: 'Answer: $NUMBER' (without quotes) where NUMBER is an integer.
+
+      Answer:
+    answer_prefix: "Answer"
+    description: "Direct answer with minimal scaffolding."
+
+  simple:
+    template: "{question}"
+    answer_prefix: "Answer"
+    description: "Raw question only, no instruction."

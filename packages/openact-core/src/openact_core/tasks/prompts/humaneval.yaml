@@ -1,0 +1,17 @@
+# HumanEval - Code Generation
+# Source: openai/openai_humaneval
+# Parser: code | Answer prefix: N/A
+
+variants:
+  instruct:
+    template: |
+      Complete the following Python function. Provide only the function body without repeating the signature or docstring. Do not include any test cases or example usage.
+
+      {prompt}
+    answer_prefix: ""
+    description: "Instruction-tuned completion prompt."
+
+  raw:
+    template: "{prompt}"
+    answer_prefix: ""
+    description: "Raw function signature + docstring."

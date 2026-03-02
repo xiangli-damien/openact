@@ -1,0 +1,20 @@
+# CommonsenseQA - 5-choice Common Sense Reasoning
+# Source: commonsense_qa
+# Parser: mc5 (ABCDE) | Answer prefix: "Answer"
+
+variants:
+  zot:
+    template: |
+      Answer the following multiple choice common-sense reasoning question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCDE. Think step by step and output the reasoning process before answering.
+
+      {question}
+    answer_prefix: "Answer"
+    description: "Zero-shot-of-thought for 5-choice commonsense QA with choices embedded in question."
+
+  simple:
+    template: |
+      {question}
+
+      {choices_text}
+    answer_prefix: "Answer"
+    description: "Raw question and choices as separate fields."

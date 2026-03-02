@@ -1,0 +1,37 @@
+# python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+ENV/
+.env
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# logs/temp
+*.log
+*.tmp
+
+# ====== DO NOT COMMIT DATA ARTIFACTS ======
+runs/
+artifacts/
+exports/
+*.parquet
+*.zarr
+*.npz
+*.npy
+*.pt
+*.ckpt
+*.safetensors
+_SUCCESS
+
+# OS
+.DS_Store
