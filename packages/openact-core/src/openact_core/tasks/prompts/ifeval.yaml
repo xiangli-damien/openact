@@ -1,0 +1,17 @@
+# IFEval - Instruction Following Evaluation
+# Source: google-research-datasets/ifeval
+# Parser: ifeval (freeform) | Answer prefix: N/A
+
+variants:
+  instruct:
+    template: |
+      Follow the instructions below exactly as specified. Pay close attention to all formatting and content requirements.
+
+      {prompt}
+    answer_prefix: ""
+    description: "Instruction-following with emphasis on exactness."
+
+  raw:
+    template: "{prompt}"
+    answer_prefix: ""
+    description: "Raw instruction, no wrapper."

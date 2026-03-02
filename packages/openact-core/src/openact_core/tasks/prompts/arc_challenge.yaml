@@ -1,0 +1,24 @@
+# ARC-Challenge - AI2 Reasoning Challenge
+# Source: allenai/ai2_arc
+# Parser: mc5 (ABCDE) | Answer prefix: "Answer"
+
+variants:
+  zot:
+    template: |
+      Answer the following science question. Think step by step before answering.
+
+      {question}
+
+      {choices_text}
+
+      The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of {choice_labels}.
+    answer_prefix: "Answer"
+    description: "Zero-shot-of-thought for ARC-Challenge science QA."
+
+  simple:
+    template: |
+      {question}
+
+      {choices_text}
+    answer_prefix: "Answer"
+    description: "Raw question and choices."

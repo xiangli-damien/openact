@@ -1,0 +1,40 @@
+# MGSM - Multilingual Grade School Math
+# Source: google-research-datasets/mgsm
+# Parser: numeric | Answer prefix: localized via with_language()
+#
+# Note: At runtime the loader calls with_language(lang) which replaces
+# "Answer:" with the localized prefix defined in ANSWER_PREFIXES.
+
+variants:
+  zot:
+    template: |
+      Solve this math problem. Give the reasoning steps before giving the final answer on the last line by itself in the format of "Answer:". Do not add anything other than the integer answer after "Answer:".
+
+      Question:
+      {question}
+    answer_prefix: "Answer"
+    description: "Zero-shot-of-thought; identical to gsm8k, localized at runtime."
+
+  zot_native:
+    template: |
+      Please solve the following math problem step by step. Respond in the same language as the problem. Show your reasoning, then provide the final numeric answer on the last line in the format of "Answer:". Do not add anything other than the number after "Answer:".
+
+      Question:
+      {question}
+    answer_prefix: "Answer"
+    description: "ZoT that asks the model to respond in the problem's language."
+
+  direct:
+    template: |
+      Problem: {question}
+
+      The last line of your response should be of the following format: 'Answer: $NUMBER' (without quotes) where NUMBER is a number.
+
+      Answer:
+    answer_prefix: "Answer"
+    description: "Direct answer with minimal scaffolding."
+
+  simple:
+    template: "{question}"
+    answer_prefix: "Answer"
+    description: "Raw question only, no instruction."

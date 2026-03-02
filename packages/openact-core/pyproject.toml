@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openact-core"
+version = "0.1.0"
+description = "Core reading and alignment library for OpenAct - LLM Activation Data Infrastructure"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+authors = [
+    {name = "OpenAct Contributors"}
+]
+keywords = ["llm", "interpretability", "activations", "mechanistic-interpretability"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy>=1.21.0",
+    "zarr>=2.14.0",
+    "pandas>=1.4.0",
+    "pyarrow>=10.0.0",
+    "numcodecs>=0.11.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+]
+
+[project.scripts]
+openact-validate = "openact_core.cli.validate:main"
+
+[project.urls]
+Homepage = "https://github.com/openact/openact"
+Documentation = "https://openact.readthedocs.io"
+Repository = "https://github.com/openact/openact"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openact_core"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+]

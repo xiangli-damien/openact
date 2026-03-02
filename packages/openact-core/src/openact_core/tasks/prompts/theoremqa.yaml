@@ -1,0 +1,16 @@
+# TheoremQA - Theorem-based Math with Typed Answers
+# Source: wenhu/TheoremQA
+# Parser: theoremqa | Answer prefix: "Therefore, the answer is"
+
+variants:
+  zot:
+    template: "Below is an instruction that describes a task, paired with an input that provides further context.\nWrite a response that appropriately completes the request.\n\n### Instruction:\nPlease read a math problem, and then think step by step to derive the answer. The answer is decided by Answer Type.\nIf the Answer type in [bool], the answer needs to be True or False.\nElse if the Answer type in [integer, float], The answer needs to be in numerical form.\nElse if the Answer type in [list of integer, list of float], the answer needs to be a list of number like [2, 3, 4].\nElse if the Answer type in [option], the answer needs to be an option like (a), (b), (c), (d).\nYou need to output the answer in your final sentence like 'Therefore, the answer is ...'.\n\n### Question: \n{question}\n\n### Answer_type: {answer_type}\n\n### Response:"
+    answer_prefix: "Therefore, the answer is"
+    description: "Type-aware ZoT; follows the original TheoremQA evaluation format."
+
+  simple:
+    template: |
+      {question}
+      Answer type: {answer_type}
+    answer_prefix: "Therefore, the answer is"
+    description: "Minimal prompt with answer type hint."

@@ -1,0 +1,39 @@
+# MMLU - Massive Multitask Language Understanding
+# Source: cais/mmlu
+# Parser: mc4 (ABCD) | Answer prefix: "Answer"
+
+variants:
+  zot:
+    template: |
+      Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
+
+      Question:
+      {question}
+    answer_prefix: "Answer"
+    description: "Zero-shot-of-thought for 4-choice MMLU with choices embedded in question field."
+
+  structured:
+    template: |
+      The following is a multiple choice question about {subject}. Think step by step before answering.
+
+      {question}
+
+      A. {choice_a}
+      B. {choice_b}
+      C. {choice_c}
+      D. {choice_d}
+
+      The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD.
+    answer_prefix: "Answer"
+    description: "ZoT with subject context and separate choice fields."
+
+  simple:
+    template: |
+      {question}
+
+      A. {choice_a}
+      B. {choice_b}
+      C. {choice_c}
+      D. {choice_d}
+    answer_prefix: "Answer"
+    description: "Raw question and choices."

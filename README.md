@@ -1,0 +1,479 @@
+# OpenAct: LLM Activation Data Infrastructure
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+
+**OpenAct** is an open-source infrastructure for collecting, storing, reading, and evaluating LLM activation data at scale. It provides a standardized data format and a modular toolchain that decouples GPU-heavy data collection from lightweight downstream analysis—so you can collect hidden states on a cluster and analyze them on a laptop.
+
+```
+ ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+ │ openact-     │      │ openact-     │      │ openact-     │
+ │ collect      │─────▶│ core         │◀─────│ eval         │
+ │              │      │              │      │              │
+ │ GPU + torch  │      │ numpy/zarr   │      │ parsers +    │
+ │ Model → Data │      │ Read / Align │      │ LLM judge    │
+ └──────────────┘      └──────────────┘      └──────────────┘
+       ▲                      ▲                      ▲
+       │                      │                      │
+   Collection             Your analysis          Evaluation
+   (one-time)            (zero GPU dep)          (automated)
+```
+
+---
+
+## Why OpenAct?
+
+Mechanistic interpretability research typically involves ad-hoc scripts that tightly couple model inference, data storage, and analysis. This creates several pain points:
+
+- **Reproducibility**: each project reinvents its own storage format, making it hard to share or reuse activation datasets.
+- **Heavy dependencies**: reading a 50 MB hidden-state tensor shouldn't require installing PyTorch.
+- **Text–token alignment**: mapping a substring like `"Answer: 42"` to its corresponding hidden states is surprisingly tricky, especially for byte-level tokenizers and CJK text.
+- **Scale**: naive approaches (pickle per sample, HDF5 with GIL contention) don't scale to millions of tokens.
+
+OpenAct solves these by defining a **standardized on-disk format** (Zarr + Parquet + JSON manifest) and providing three focused packages with a strict dependency direction: `collect → core ← eval`.
+
+---
+
+## Key Features
+
+### Token–Text Hard Alignment
+Every token is stored with its `(char_start, char_end)` offsets into the decoded response text. This means you can do:
+
+```python
+span = sample.find_text("the answer is")
+hs = sample.get_span_hidden_states(span, layers=[-1], reduction="mean")
+```
+
+No tokenizer needed at read time. Works correctly for CJK, Arabic, multi-byte characters, and byte-level tokenizers (LLaMA, Qwen).
+
+### Zero GPU for Reading
+`openact-core` depends only on numpy, zarr, pandas, and pyarrow. You can load a 32-layer, 4096-dim hidden state dataset on a CPU-only machine, a CI server, or a Jupyter notebook without ever importing torch.
+
+### Async I/O Pipeline
+During collection, a background thread writes Zarr arrays while the GPU processes the next sample. The GPU never stalls on disk I/O.
+
+### Hierarchical Zarr Storage
+Hidden states, attention patterns, and MLP activations are stored in a single Zarr group with lazy, chunked access. You can read one sample's hidden states without loading the entire dataset into memory.
+
+### Complete Reproducibility
+Every run writes a `manifest.json` capturing: model identifier + revision, prompt template (with SHA-256 hash), generation hyperparameters, capture configuration, environment (Python / torch / transformers versions, CUDA version, hostname, command line). A `_SUCCESS` marker with validation results is written only after integrity checks pass.
+
+### Built-in Evaluation
+`openact-eval` provides deterministic parser-based evaluation for 10+ benchmarks, LLM-as-judge evaluation (OpenAI / Anthropic backends), safety evaluation (refusal heuristics + LlamaGuard), and a unified pipeline that stores results as labels alongside the run.
+
+---
+
+## Installation
+
+```bash
+# Core: read and analyze activation data (no torch required)
+pip install openact-core
+
+# Collect: run model inference and collect activations (requires torch + transformers)
+pip install openact-collect
+
+# Eval: evaluate runs with parsers or LLM judges
+pip install openact-eval
+
+# Or install everything
+pip install openact-eval[all]  # includes openai + anthropic clients
+```
+
+---
+
+## Quick Start
+
+### 1. Collect Activations
+
+```bash
+# Collect hidden states from GSM8K with Qwen2-7B-Instruct
+openact collect \
+    --model Qwen/Qwen2-7B-Instruct \
+    --task gsm8k \
+    --output runs/gsm8k_qwen \
+    --max-samples 500 \
+    --layers -1,-2,-3          # last 3 layers only
+```
+
+Collection supports resume (`--no-resume` to disable), per-sample timeouts (`--timeout 300`), OOM recovery, and async Zarr writing. See `openact collect --help` for all options.
+
+Available tasks: `gsm8k`, `mgsm`, `mmlu`, `math`, `arc_challenge`, `commonsenseqa`, `belebele`, `theoremqa`, `truthfulqa`, `humaneval`, `ifeval`, `jbb`, `advbench`, `xstest`.
+
+### 2. Read and Analyze (No GPU Needed)
+
+```python
+from openact_core import Run
+
+run = Run("runs/gsm8k_qwen")
+print(run)  # ✓ Run: gsm8k_qwen (487/500 valid)
+print(run.stats)
+
+# Access individual samples
+sample = run[42]
+print(sample.response_text[:200])
+print(sample.hidden_states.shape)          # (T, L, H) e.g. (156, 3, 3584)
+print(sample.mean_hidden_states.shape)     # (L, H)
+print(sample.ground_truth)                 # "42"
+
+# Token–text alignment: find a substring → get its hidden states
+span = sample.find_text("Answer:")
+if span:
+    print(f"'Answer:' = tokens {span.start}:{span.end}")
+    print(f"Verification: '{sample.span_to_text(span)}'")
+    hs = sample.get_span_hidden_states(span, layers=[-1], reduction="mean")
+    print(f"Hidden state vector: {hs.shape}")  # (H,)
+
+# One-liner: text → hidden state
+hs = sample.get_text_hidden_states("the answer is", layers=[-1])
+
+# Bulk access for downstream ML
+import numpy as np
+X = run.get_all_hidden_states(reduction="mean", layers=[-1])  # (N, 1, H)
+y = run.get_all_labels("is_correct")                           # (N,) bool
+```
+
+### 3. Evaluate
+
+```bash
+# Auto-detect task and evaluator from manifest
+openact-eval eval runs/gsm8k_qwen
+
+# Explicit options
+openact-eval eval runs/gsm8k_qwen --task gsm8k --evaluator parser --label correctness
+
+# LLM-as-judge for open-ended tasks
+openact-eval eval runs/truthfulqa_qwen --evaluator llm --llm-model gpt-4o-mini
+
+# JSON output for scripting
+openact-eval eval runs/gsm8k_qwen --json
+```
+
+Or programmatically:
+
+```python
+from openact_eval import EvalPipeline
+
+pipeline = EvalPipeline("runs/gsm8k_qwen")
+summary = pipeline.run_pipeline()
+print(f"Accuracy: {summary['accuracy']:.1%}")
+# Labels are automatically saved to runs/gsm8k_qwen/labels/correctness.parquet
+```
+
+---
+
+## Data Format
+
+Every OpenAct run is a self-contained directory:
+
+```
+runs/gsm8k_qwen/
+├── manifest.json                   # Full reproducibility metadata
+├── data.parquet                    # Per-sample metadata (prompt, response, metrics, ...)
+├── _SUCCESS                        # Completion marker with validation results
+├── labels/                         # Post-hoc labels (optional, added by eval or user)
+│   ├── correctness.parquet
+│   └── safety.parquet
+└── tensors.zarr/                   # Activation tensors (Zarr directory store)
+    ├── tokens/
+    │   ├── ids                     # (N_total_tokens,) int32 — token IDs
+    │   ├── offsets                 # (N_total_tokens, 2) int32 — char (start, end)
+    │   └── sample_ptr              # (N_samples+1,) int64 — CSR-style pointers
+    ├── sample_status               # (N_samples,) int8 — OK/ERROR/TIMEOUT/...
+    └── hidden_states/
+        ├── per_token               # (N_total_tokens, L, H) float16
+        ├── mean                    # (N_samples, L, H) float32
+        └── prompt_last             # (N_samples, L, H) float32
+```
+
+**Design choices:**
+
+- **CSR-style token storage**: all tokens are concatenated into flat arrays; `sample_ptr[i]:sample_ptr[i+1]` gives sample `i`'s range. This avoids ragged arrays and enables efficient batch reads.
+- **Char offsets with every token**: the `offsets` array stores `(char_start, char_end)` for each token relative to the decoded response text. This is the "hard alignment" that makes `find_text()` → `get_span_hidden_states()` work without a tokenizer.
+- **Parquet for metadata, Zarr for tensors**: parquet is fast for tabular queries and filtering; Zarr provides chunked, compressed, lazy access to multi-dimensional arrays.
+- **Labels as separate parquet files**: evaluation results, human annotations, or any post-hoc labels live in `labels/` and are joined by `sample_idx` at read time. This keeps the core data immutable.
+
+---
+
+## Package Details
+
+### openact-core
+
+The read-only data layer. No torch dependency.
+
+| Module | Purpose |
+|--------|---------|
+| `io.Run` | Main entry point. Wraps zarr + parquet. Supports `__getitem__`, `iter_valid()`, `filter()`, bulk `get_all_*` methods. |
+| `io.Sample` | Lazy proxy for one sample. Properties: `hidden_states`, `token_ids`, `response_text`, `aligner`, etc. |
+| `io.BatchReader` | Efficient bulk hidden-state reads with merge-gap optimization. `HiddenStateLoader` for common patterns. |
+| `alignment.TokenAligner` | Bidirectional token ↔ char mapping. `find_substring()`, `char_span_to_token_span()`, `visualize()`. |
+| `tasks.parsers` | Answer extraction: `NumericParser`, `MCParser4/5`, `MathParser`, `CodeParser`, `RefusalParser`, etc. |
+| `tasks.templates` | Prompt templates for all supported benchmarks, with multilingual prefix localization. |
+| `export` | `export_to_numpy()`, `export_to_hf_dataset()`, `export_alignments()`. |
+| `hub` | `load_run()` with automatic R2 pull. `openact-sync push/pull/list` CLI. |
+
+### openact-collect
+
+The GPU-side collection engine.
+
+| Module | Purpose |
+|--------|---------|
+| `engine.Collector` | Orchestrator. Handles plan iteration, guarded execution (SIGALRM timeout, OOM recovery), parquet partitioning, resume. |
+| `engine.ModelManager` | HuggingFace model loading, chat template application, `generate()` with hidden-state output. |
+| `engine.AsyncZarrWriter` | Background-thread writer. Dynamic array resizing, sample pointer management, resume index detection. |
+| `engine.OffsetCalculator` | Multi-strategy token→char offset computation: native offset mapping → incremental decode → byte-level alignment → linear fallback. |
+| `engine.OnlineMetricsProcessor` | Injects as a `LogitsProcessor` to compute perplexity, entropy, max-probability during generation with zero extra forward passes. |
+| `extractors.HiddenStateExtractor` | Extracts per-token, mean, and prompt-last hidden states from `GenerationResult`. Supports layer selection and dtype casting. |
+| `tasks.capability.*` | 11 benchmark tasks (GSM8K, MGSM, MMLU, MATH, ARC, CommonsenseQA, Belebele, TheoremQA, TruthfulQA, HumanEval, IFEval). |
+| `tasks.safety.*` | 3 safety tasks (JBB, AdvBench, XSTest) with behavior × variant × profile plan generation and artifact (jailbreak prompt) loading. |
+
+### openact-eval
+
+Evaluation and labeling toolkit.
+
+| Module | Purpose |
+|--------|---------|
+| `evaluators.ParserEvaluator` | Deterministic eval: parser extracts answer, matcher compares to ground truth. |
+| `evaluators.LLMJudgeEvaluator` | LLM-as-judge with OpenAI/Anthropic backends, retry logic, structured output parsing. |
+| `evaluators.RefusalHeuristicEvaluator` | Regex-based refusal detection for safety tasks. |
+| `evaluators.LlamaGuardEvaluator` | Model-based safety classification using LlamaGuard. |
+| `matchers` | `ExactMatcher`, `NumericMatcher` (relative tolerance), `MathMatcher` (expression evaluation), `ListMatcher`, `TypeAwareMatcher`. |
+| `metrics` | `compute_metrics()`, `compare_evaluators()`, `MetricsSummary`. |
+| `metrics_safety` | `compute_safety_metrics()`: ASR by category/method/profile, over-refusal rate, formatted report. |
+| `pipeline.EvalPipeline` | One-call evaluation: auto-detect task → select evaluator → run → save labels → compute metrics. |
+
+---
+
+## Advanced Usage
+
+### Batch Hidden-State Loading
+
+For large-scale analysis, use the batch reader to avoid per-sample I/O overhead:
+
+```python
+from openact_core.io.batch_reader import HiddenStateLoader
+
+run = Run("runs/gsm8k_qwen")
+loader = HiddenStateLoader(run, layers=[-1], only_valid=True)
+
+# Load all trajectories (variable-length per sample)
+trajectories = loader.load_trajectories(batch_size=256)
+
+# Fixed-length aligned trajectories (interpolated to 32 points)
+aligned = loader.load_aligned_trajectories(n_points=32)
+print(aligned.shape)  # (N_valid, 32, 1, H)
+
+# Mean hidden states for a token range (e.g., last 20% of each response)
+tail_mean = loader.load_range_mean(start_pct=0.8, end_pct=1.0)
+print(tail_mean.shape)  # (N_valid, 1, H)
+```
+
+### Adding Custom Labels
+
+Labels are stored as parquet files in `labels/` and are automatically accessible via `sample.get_label()`:
+
+```python
+import pandas as pd
+from openact_core import Run
+
+run = Run("runs/gsm8k_qwen")
+
+# Your analysis produces labels
+labels = pd.DataFrame({
+    "sample_idx": [s.sample_idx for s in run.iter_valid()],
+    "cluster_id": cluster_assignments,
+    "confidence_score": confidence_scores,
+})
+
+labels.to_parquet(run.run_dir / "labels" / "my_analysis.parquet", index=False)
+
+# Now accessible on every sample
+sample = run[0]
+print(sample.get_label("cluster_id"))
+
+# Or bulk access
+all_clusters = run.get_all_labels("cluster_id", only_valid=True)
+```
+
+### Safety Evaluation
+
+```bash
+# Collect safety data with multi-temperature sampling
+openact collect \
+    --model Qwen/Qwen2-7B-Instruct \
+    --task jbb \
+    --output runs/jbb_qwen \
+    --profiles "greedy:temp=0.0 warm:temp=0.7,n_gen=2 hot:temp=1.0,n_gen=2" \
+    --artifact-dir /path/to/attack_artifacts \
+    --safety-split all
+
+# Evaluate
+openact-eval eval runs/jbb_qwen --task jbb
+```
+
+```python
+from openact_eval import RefusalHeuristicEvaluator, compute_safety_metrics, format_safety_report
+
+evaluator = RefusalHeuristicEvaluator()
+result = evaluator.evaluate(run)
+metrics = compute_safety_metrics(result)
+print(format_safety_report(metrics))
+# ══════════════════════════════════════════════════════════
+#   SAFETY EVALUATION REPORT
+# ══════════════════════════════════════════════════════════
+#   Refusal rate:        87.5%
+#   Attack success rate: 12.5%
+#   ASR by attack method:
+#     GCG                   23.1%
+#     PAIR                  15.4%
+#     GOAL                   3.8%
+```
+
+### Custom Tasks
+
+```python
+from openact_collect import GenericTask, Collector, ModelManager
+from openact_collect.schema import CaptureSpec, GenerationSpec
+
+# Define your data
+data = [
+    {"prompt": "Translate to French: Hello", "answer": "Bonjour"},
+    {"prompt": "Translate to French: Goodbye", "answer": "Au revoir"},
+]
+
+task = GenericTask(data=data, prompt_key="prompt", answer_key="answer")
+model = ModelManager("Qwen/Qwen2-7B-Instruct")
+
+collector = Collector(
+    model_manager=model,
+    task=task,
+    output_dir="runs/custom_translation",
+    capture_spec=CaptureSpec(hidden_states_layers=[-1]),
+    generation_spec=GenerationSpec(max_new_tokens=256, temperature=0.0),
+)
+stats = collector.run()
+```
+
+### Exporting Data
+
+```python
+from openact_core.export import export_to_numpy, export_to_hf_dataset
+
+# Export to numpy arrays
+paths = export_to_numpy(
+    run="runs/gsm8k_qwen",
+    output_dir="exports/gsm8k",
+    reduction="mean",
+    layers=[-1],
+    include_labels=["is_correct"],
+)
+# Creates: hidden_states.npy, labels.npz, metadata.json
+
+# Export to HuggingFace Dataset
+dataset = export_to_hf_dataset("runs/gsm8k_qwen", include_hidden_states=True)
+dataset.push_to_hub("username/gsm8k-qwen-activations")
+```
+
+### Cloud Sync
+
+```bash
+# Push a completed run to R2
+openact-sync push gsm8k_qwen_20250101
+
+# Pull a run from R2
+openact-sync pull gsm8k_qwen_20250101
+
+# List available runs
+openact-sync list
+```
+
+```python
+from openact_core import load_run
+
+# Auto-pulls from R2 if not found locally
+run = load_run("gsm8k_qwen_20250101")
+```
+
+---
+
+## Supported Tasks
+
+| Task | Type | Source | Parser | Evaluator |
+|------|------|--------|--------|-----------|
+| GSM8K | Math | `openai/gsm8k` | Numeric | Parser |
+| MGSM | Math (multilingual) | `juletxara/mgsm` | Numeric | Parser |
+| MATH | Math (competition) | `EleutherAI/hendrycks_math` | Math expression | Parser |
+| MMLU | Knowledge (57 subjects) | `cais/mmlu` | MC-4 | Parser |
+| ARC-Challenge | Reasoning | `allenai/ai2_arc` | MC-5 | Parser |
+| CommonsenseQA | Reasoning | `tau/commonsense_qa` | MC-5 | Parser |
+| Belebele | Reading comprehension | `facebook/belebele` | MC-4 | Parser |
+| TheoremQA | Math/Science | `TIGER-Lab/TheoremQA` | Type-aware | Parser |
+| TruthfulQA | Truthfulness | `truthful_qa` | Freeform | LLM Judge |
+| HumanEval | Code | `openai/openai_humaneval` | Code | LLM Judge |
+| IFEval | Instruction following | `google/IFEval` | Freeform | LLM Judge |
+| JailbreakBench | Safety | `JailbreakBench/JBB-Behaviors` | Refusal | Safety |
+| AdvBench | Safety | `walledai/AdvBench` | Refusal | Safety |
+| XSTest | Safety (over-refusal) | `nreimers/XSTest` | Refusal | Safety |
+
+---
+
+## Project Structure
+
+```
+openact/
+├── pyproject.toml                          # Top-level meta-package
+├── README.md
+└── packages/
+    ├── openact-core/                       # Data layer (no torch)
+    │   └── src/openact_core/
+    │       ├── io/                         # Run, Sample, BatchReader
+    │       ├── alignment/                  # TokenAligner
+    │       ├── schema/                     # Manifest, SampleStatus
+    │       ├── tasks/                      # Templates, Parsers, Descriptors
+    │       ├── export/                     # numpy, HuggingFace converters
+    │       ├── hub.py                      # load_run, R2 sync
+    │       └── cli/                        # openact-sync CLI
+    ├── openact-collect/                    # Collection engine (requires torch)
+    │   └── src/openact_collect/
+    │       ├── engine/                     # Collector, ModelManager, AsyncWriter
+    │       ├── extractors/                 # HiddenStateExtractor
+    │       ├── schema/                     # CaptureSpec, GenerationSpec, SafetySpec
+    │       └── tasks/                      # Task implementations
+    │           ├── capability/             # 11 benchmarks
+    │           └── safety/                 # 3 safety datasets
+    └── openact-eval/                       # Evaluation toolkit
+        └── src/openact_eval/
+            ├── evaluators/                 # Parser, LLM Judge, Safety
+            ├── matchers/                   # Exact, Numeric, Math, List
+            ├── metrics.py                  # Accuracy, comparison
+            ├── metrics_safety.py           # ASR, over-refusal
+            └── pipeline.py                 # EvalPipeline
+```
+
+---
+
+## Development
+
+```bash
+git clone xxx
+cd openact
+
+# Install all packages in editable mode
+pip install -e packages/openact-core[dev]
+pip install -e packages/openact-collect[dev]
+pip install -e packages/openact-eval[dev]
+
+# Run tests
+pytest packages/openact-core/tests/
+pytest packages/openact-collect/tests/ -m "not slow and not gpu"
+pytest packages/openact-eval/tests/
+
+# Lint
+ruff check packages/
+black --check packages/
+```
+
+---
+
+## License
+
+Apache 2.0. See [LICENSE](LICENSE) for details.

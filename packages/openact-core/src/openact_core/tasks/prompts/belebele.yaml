@@ -1,0 +1,35 @@
+# Belebele - Multilingual Reading Comprehension
+# Source: facebook/belebele
+# Parser: mc4 (ABCD) | Answer prefix: "Answer"
+
+variants:
+  zot:
+    template: |
+      Answer the following multiple choice reading-comprehension question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Please fully understand the passage and give explanations step by step before answering.
+
+      {question}
+    answer_prefix: "Answer"
+    description: "Zero-shot-of-thought for passage-based 4-choice QA with all content in question field."
+
+  structured:
+    template: |
+      Read the following passage carefully and answer the multiple choice question. Think step by step and provide your reasoning before answering.
+
+      Passage:
+      {passage}
+
+      Question: {question}
+
+      A. {choice_a}
+      B. {choice_b}
+      C. {choice_c}
+      D. {choice_d}
+
+      The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD.
+    answer_prefix: "Answer"
+    description: "ZoT with separate passage and choice fields."
+
+  simple:
+    template: "{question}"
+    answer_prefix: "Answer"
+    description: "Raw question only."

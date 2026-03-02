@@ -1,0 +1,75 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openact-eval"
+version = "0.1.0"
+description = "Evaluation and labeling toolkit for OpenAct runs"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+authors = [
+    {name = "OpenAct Contributors"}
+]
+keywords = ["llm", "interpretability", "evaluation", "mechanistic-interpretability"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "openact-core>=0.1.0",
+    "numpy>=1.21.0",
+    "pandas>=1.4.0",
+    "tqdm>=4.60.0",
+]
+
+[project.optional-dependencies]
+llm = [
+    "openai>=1.0.0",
+    "anthropic>=0.20.0",
+]
+safety = [
+    "torch>=2.0.0",
+    "transformers>=4.35.0",
+]
+all = [
+    "openact-eval[llm]",
+    "openact-eval[safety]",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "black",
+    "ruff",
+]
+
+[project.scripts]
+openact-eval = "openact_eval.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/openact/openact"
+Repository = "https://github.com/openact/openact"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openact_eval"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501"]
