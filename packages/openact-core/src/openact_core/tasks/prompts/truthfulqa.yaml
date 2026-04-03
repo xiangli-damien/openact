@@ -1,7 +1,3 @@
-# TruthfulQA - Truthful Question Answering
-# Source: truthful_qa
-# Parser: truthfulqa (freeform) | Answer prefix: "Answer"
-
 variants:
   zot:
     template: |

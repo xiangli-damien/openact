@@ -1,7 +1,3 @@
-# IFEval - Instruction Following Evaluation
-# Source: google-research-datasets/ifeval
-# Parser: ifeval (freeform) | Answer prefix: N/A
-
 variants:
   instruct:
     template: |

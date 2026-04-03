@@ -1,7 +1,3 @@
-# ARC-Challenge - AI2 Reasoning Challenge
-# Source: allenai/ai2_arc
-# Parser: mc5 (ABCDE) | Answer prefix: "Answer"
-
 variants:
   zot:
     template: |

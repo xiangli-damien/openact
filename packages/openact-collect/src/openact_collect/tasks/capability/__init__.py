@@ -9,7 +9,6 @@ from openact_collect.tasks.capability.belebele import BelebeleTask
 from openact_collect.tasks.capability.truthfulqa import TruthfulQATask
 from openact_collect.tasks.capability.humaneval import HumanEvalTask
 from openact_collect.tasks.capability.ifeval import IFEvalTask
-
 __all__ = [
     "GSM8KTask",
     "MGSMTask",

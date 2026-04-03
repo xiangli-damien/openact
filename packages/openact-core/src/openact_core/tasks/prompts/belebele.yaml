@@ -1,7 +1,3 @@
-# Belebele - Multilingual Reading Comprehension
-# Source: facebook/belebele
-# Parser: mc4 (ABCD) | Answer prefix: "Answer"
-
 variants:
   zot:
     template: |

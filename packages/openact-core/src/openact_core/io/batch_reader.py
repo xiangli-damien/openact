@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple
+
 import numpy as np
-import zarr
 
 
 @dataclass
@@ -17,183 +17,177 @@ class RunSnapshot:
         self.run_dir = run.run_dir
         self._zarr = run._zarr
         self._df = run._df
-        self.sample_ptr = np.asarray(run._zarr['tokens/sample_ptr'][:])
-        self.sample_status = np.asarray(run._zarr['sample_status'][:])
-        self.n_samples = len(self._df)
-        self.hs_path = self._detect_hs_path()
-        if self.hs_path:
+
+        self.sample_ptr = np.asarray(self._zarr['tokens/sample_ptr'][:]).astype(np.int64)
+        if 'sample_status' in self._zarr:
+            self.sample_status = np.asarray(self._zarr['sample_status'][:]).astype(np.int64)
+        else:
+            self.sample_status = np.asarray(self._df.get('status', np.zeros(len(self._df), dtype=np.int64)))
+
+        self.n_samples = int(len(self._df))
+        self.hs_path = getattr(run, '_hs_per_token_path', None) or self._detect_hs_path()
+
+        if self.hs_path and self.hs_path in self._zarr:
             hs_arr = self._zarr[self.hs_path]
-            self.total_tokens = hs_arr.shape[0]
-            self.n_layers = hs_arr.shape[1]
-            self.hidden_dim = hs_arr.shape[2]
+            self.total_tokens = int(hs_arr.shape[0])
+            self.n_layers = int(hs_arr.shape[1])
+            self.hidden_dim = int(hs_arr.shape[2])
             self.hs_dtype = hs_arr.dtype
         else:
-            self.total_tokens = int(self.sample_ptr[-1])
+            self.total_tokens = int(self.sample_ptr[-1]) if len(self.sample_ptr) else 0
             if 'hidden_states/mean' in self._zarr:
-                self.n_layers = self._zarr['hidden_states/mean'].shape[1]
-                self.hidden_dim = self._zarr['hidden_states/mean'].shape[2]
+                self.n_layers = int(self._zarr['hidden_states/mean'].shape[1])
+                self.hidden_dim = int(self._zarr['hidden_states/mean'].shape[2])
             else:
                 self.n_layers = 0
                 self.hidden_dim = 0
             self.hs_dtype = None
-    
+
     def _detect_hs_path(self) -> Optional[str]:
-        for path in ['hidden_states/per_token', 'response/hidden_states/data']:
+        for path in ('hidden_states/per_token', 'response/hidden_states/data'):
             if path in self._zarr:
                 return path
         return None
-    
+
     def get_token_range(self, sample_idx: int) -> Tuple[int, int]:
-        return (int(self.sample_ptr[sample_idx]), int(self.sample_ptr[sample_idx + 1]))
-    
+        i = int(sample_idx)
+        if i + 1 >= len(self.sample_ptr):
+            return (0, 0)
+        return (int(self.sample_ptr[i]), int(self.sample_ptr[i + 1]))
+
     def get_n_tokens(self, sample_idx: int) -> int:
         s, e = self.get_token_range(sample_idx)
-        return e - s
-    
+        return max(0, e - s)
+
     def get_valid_indices(self) -> np.ndarray:
         from openact_core.schema.status import SampleStatus
-        return np.where(self.sample_status == SampleStatus.OK)[0]
+
+        return np.where(self.sample_status == int(SampleStatus.OK))[0].astype(np.int64)
 
 
 class TokenSelector:
     @staticmethod
     def all_tokens(snap: RunSnapshot, sample_idx: int) -> TokenSelection:
         s, e = snap.get_token_range(sample_idx)
-        n = e - s
-        return TokenSelection(
-            sample_idx=sample_idx,
-            flat_indices=np.arange(s, e),
-            local_indices=np.arange(n),
-            n_sample_tokens=n,
-        )
-    
+        n = max(0, e - s)
+        local = np.arange(n, dtype=np.int64)
+        return TokenSelection(int(sample_idx), local + s, local, n)
+
     @staticmethod
-    def token_range(snap: RunSnapshot, sample_idx: int, start: Optional[int] = None, end: Optional[int] = None) -> TokenSelection:
+    def token_range(
+        snap: RunSnapshot,
+        sample_idx: int,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+    ) -> TokenSelection:
         s, e = snap.get_token_range(sample_idx)
-        n = e - s
-        lo = start or 0
-        hi = min(end, n) if end is not None else n
+        n = max(0, e - s)
+        lo = int(start) if start is not None else 0
+        hi = int(end) if end is not None else n
         lo = max(0, lo)
+        hi = min(n, hi)
         if lo >= hi:
-            return TokenSelection(sample_idx, np.array([], dtype=int), np.array([], dtype=int), n)
-        local = np.arange(lo, hi)
-        return TokenSelection(sample_idx, local + s, local, n)
-    
+            empty = np.array([], dtype=np.int64)
+            return TokenSelection(int(sample_idx), empty, empty, n)
+        local = np.arange(lo, hi, dtype=np.int64)
+        return TokenSelection(int(sample_idx), local + s, local, n)
+
     @staticmethod
-    def percentage_range(snap: RunSnapshot, sample_idx: int, start_pct: float = 0.0, end_pct: float = 1.0) -> TokenSelection:
+    def percentage_range(
+        snap: RunSnapshot,
+        sample_idx: int,
+        start_pct: float = 0.0,
+        end_pct: float = 1.0,
+    ) -> TokenSelection:
         s, e = snap.get_token_range(sample_idx)
-        n = e - s
-        lo = int(n * start_pct)
-        hi = int(n * end_pct)
-        lo, hi = max(0, lo), min(n, hi)
+        n = max(0, e - s)
+        lo = int(np.floor(n * float(start_pct)))
+        hi = int(np.ceil(n * float(end_pct)))
+        lo = max(0, lo)
+        hi = min(n, hi)
         if lo >= hi:
-            return TokenSelection(sample_idx, np.array([], dtype=int), np.array([], dtype=int), n)
-        local = np.arange(lo, hi)
-        return TokenSelection(sample_idx, local + s, local, n)
-    
+            empty = np.array([], dtype=np.int64)
+            return TokenSelection(int(sample_idx), empty, empty, n)
+        local = np.arange(lo, hi, dtype=np.int64)
+        return TokenSelection(int(sample_idx), local + s, local, n)
+
     @staticmethod
-    def evenly_spaced(snap: RunSnapshot, sample_idx: int, n_points: int = 32) -> TokenSelection:
+    def evenly_spaced(
+        snap: RunSnapshot,
+        sample_idx: int,
+        n_points: int = 32,
+    ) -> TokenSelection:
         s, e = snap.get_token_range(sample_idx)
-        n = e - s
-        if n <= n_points:
-            return TokenSelector.all_tokens(snap, sample_idx)
-        local = np.linspace(0, n - 1, n_points, dtype=int)
-        local = np.unique(local)
-        return TokenSelection(sample_idx, local + s, local, n)
+        n = max(0, e - s)
+        if n <= 0:
+            empty = np.array([], dtype=np.int64)
+            return TokenSelection(int(sample_idx), empty, empty, 0)
+        if n_points <= 0:
+            empty = np.array([], dtype=np.int64)
+            return TokenSelection(int(sample_idx), empty, empty, n)
+        grid = np.linspace(0, n - 1, num=min(n_points, max(1, n)))
+        local = np.unique(np.clip(np.round(grid).astype(np.int64), 0, n - 1))
+        return TokenSelection(int(sample_idx), local + s, local, n)
 
 
 @dataclass
 class ReadPlan:
-    intervals: List[Tuple[int, int]]
     selections: List[TokenSelection]
-    total_tokens_to_read: int
-    n_intervals: int
 
 
 def build_read_plan(selections: List[TokenSelection], merge_gap: int = 64) -> ReadPlan:
-    all_positions = set()
-    for sel in selections:
-        all_positions.update(sel.flat_indices.tolist())
-    
-    if not all_positions:
-        return ReadPlan([], selections, 0, 0)
-    
-    sorted_pos = sorted(all_positions)
-    intervals = []
-    cur_start = sorted_pos[0]
-    cur_end = sorted_pos[0] + 1
-    
-    for pos in sorted_pos[1:]:
-        if pos <= cur_end + merge_gap:
-            cur_end = pos + 1
-        else:
-            intervals.append((cur_start, cur_end))
-            cur_start = pos
-            cur_end = pos + 1
-    intervals.append((cur_start, cur_end))
-    
-    return ReadPlan(intervals, selections, len(sorted_pos), len(intervals))
+    del merge_gap
+    return ReadPlan(selections=list(selections))
 
 
 class BatchReader:
     def __init__(self, snap: RunSnapshot, layers: Optional[List[int]] = None, output_dtype: str = 'float32'):
+        if snap.hs_path is None or snap.hs_path not in snap._zarr:
+            raise ValueError('Per-token hidden states are not available in this run')
         self.snap = snap
         self.layers = layers
         self.output_dtype = np.dtype(output_dtype)
-        if snap.hs_path is None:
-            raise ValueError("No per-token hidden states in this run")
         self._hs_array = snap._zarr[snap.hs_path]
-    
+
     def execute(self, plan: ReadPlan) -> Dict[int, np.ndarray]:
-        if not plan.intervals:
-            return {}
-        
-        cache = {}
-        for iv_start, iv_end in plan.intervals:
-            block = np.asarray(self._hs_array[iv_start:iv_end])
-            if self.layers is not None:
-                block = block[:, self.layers, :]
-            if block.dtype != self.output_dtype:
-                block = block.astype(self.output_dtype)
-            cache[(iv_start, iv_end)] = block
-        
-        results = {}
+        results: Dict[int, np.ndarray] = {}
+        layer_idx = self.layers
         for sel in plan.selections:
-            if len(sel.flat_indices) == 0:
-                L = len(self.layers) if self.layers else self.snap.n_layers
-                results[sel.sample_idx] = np.zeros((0, L, self.snap.hidden_dim), dtype=self.output_dtype)
+            if sel.n_sample_tokens <= 0 or len(sel.local_indices) == 0:
+                L = len(layer_idx) if layer_idx is not None else self.snap.n_layers
+                results[int(sel.sample_idx)] = np.zeros((0, L, self.snap.hidden_dim), dtype=self.output_dtype)
                 continue
-            
-            token_vectors = []
-            for flat_idx in sel.flat_indices:
-                for (iv_start, iv_end), block in cache.items():
-                    if iv_start <= flat_idx < iv_end:
-                        token_vectors.append(block[flat_idx - iv_start])
-                        break
-            
-            results[sel.sample_idx] = np.stack(token_vectors, axis=0)
-        
+            s, e = self.snap.get_token_range(sel.sample_idx)
+            block = np.asarray(self._hs_array[s:e])
+            if block.size == 0:
+                L = len(layer_idx) if layer_idx is not None else self.snap.n_layers
+                results[int(sel.sample_idx)] = np.zeros((0, L, self.snap.hidden_dim), dtype=self.output_dtype)
+                continue
+            picked = block[sel.local_indices]
+            if layer_idx is not None and picked.size:
+                picked = picked[:, layer_idx, :]
+            results[int(sel.sample_idx)] = picked.astype(self.output_dtype, copy=False)
         return results
-    
+
     def execute_with_reduction(self, plan: ReadPlan, reduction: str = 'mean') -> Dict[int, np.ndarray]:
         raw = self.execute(plan)
-        reduced = {}
-        for sample_idx, hs in raw.items():
-            if len(hs) == 0:
-                L = len(self.layers) if self.layers else self.snap.n_layers
-                reduced[sample_idx] = np.zeros((L, self.snap.hidden_dim), dtype=self.output_dtype)
+        out: Dict[int, np.ndarray] = {}
+        layer_idx = self.layers
+        L = len(layer_idx) if layer_idx is not None else self.snap.n_layers
+        zero = np.zeros((L, self.snap.hidden_dim), dtype=self.output_dtype)
+        for idx, hs in raw.items():
+            if hs.size == 0:
+                out[int(idx)] = zero
                 continue
-            
             if reduction == 'mean':
-                reduced[sample_idx] = hs.mean(axis=0)
+                out[int(idx)] = hs.mean(axis=0)
             elif reduction == 'first':
-                reduced[sample_idx] = hs[0]
+                out[int(idx)] = hs[0]
             elif reduction == 'last':
-                reduced[sample_idx] = hs[-1]
+                out[int(idx)] = hs[-1]
             else:
-                reduced[sample_idx] = hs
-        
-        return reduced
+                out[int(idx)] = hs
+        return out
 
 
 def iter_batched_hidden_states(
@@ -205,78 +199,112 @@ def iter_batched_hidden_states(
     merge_gap: int = 64,
     output_dtype: str = 'float32',
 ):
+    del merge_gap
     reader = BatchReader(snap, layers=layers, output_dtype=output_dtype)
-    for batch_start in range(0, len(sample_indices), batch_size):
-        batch_indices = sample_indices[batch_start:batch_start + batch_size]
-        selections = [selector_fn(snap, idx) for idx in batch_indices]
-        plan = build_read_plan(selections, merge_gap=merge_gap)
-        results = reader.execute(plan)
+    for start in range(0, len(sample_indices), max(1, int(batch_size))):
+        batch = sample_indices[start : start + max(1, int(batch_size))]
+        selections = [selector_fn(snap, int(i)) for i in batch]
+        plan = build_read_plan(selections)
+        data = reader.execute(plan)
         for sel in selections:
-            hs = results.get(sel.sample_idx)
+            hs = data.get(int(sel.sample_idx))
             if hs is not None:
-                yield sel.sample_idx, sel, hs
+                yield int(sel.sample_idx), sel, hs
 
 
 class HiddenStateLoader:
-    def __init__(self, run, layers: Optional[List[int]] = None, only_valid: bool = True, output_dtype: str = 'float32'):
+    def __init__(
+        self,
+        run,
+        layers: Optional[List[int]] = None,
+        only_valid: bool = True,
+        output_dtype: str = 'float32',
+    ):
         self.snap = RunSnapshot(run)
         self.layers = layers
-        self.only_valid = only_valid
+        self.only_valid = bool(only_valid)
         self.output_dtype = output_dtype
-        self._indices = self.snap.get_valid_indices() if only_valid else np.arange(self.snap.n_samples)
-    
+        self._indices = self.snap.get_valid_indices() if only_valid else np.arange(self.snap.n_samples, dtype=np.int64)
+
+    @property
+    def indices(self) -> np.ndarray:
+        return self._indices
+
     @property
     def n_effective_layers(self) -> int:
-        return len(self.layers) if self.layers else self.snap.n_layers
-    
-    def load_trajectories(self, batch_size: int = 256) -> Dict[int, np.ndarray]:
-        result = {}
-        for idx, sel, hs in iter_batched_hidden_states(
-            self.snap, self._indices.tolist(),
+        return len(self.layers) if self.layers is not None else int(self.snap.n_layers)
+
+    def load_full_sequences(self, batch_size: int = 256) -> Dict[int, np.ndarray]:
+        result: Dict[int, np.ndarray] = {}
+        for idx, _sel, hs in iter_batched_hidden_states(
+            self.snap,
+            self._indices.tolist(),
             selector_fn=TokenSelector.all_tokens,
             layers=self.layers,
             batch_size=batch_size,
             output_dtype=self.output_dtype,
         ):
-            result[idx] = hs
+            result[int(idx)] = hs
         return result
-    
-    def load_range_mean(self, start: Optional[int] = None, end: Optional[int] = None, start_pct: Optional[float] = None, end_pct: Optional[float] = None, batch_size: int = 512) -> np.ndarray:
-        use_pct = start_pct is not None or end_pct is not None
-        if use_pct:
-            sp = start_pct or 0.0
-            ep = end_pct or 1.0
+
+    def load_range_mean(
+        self,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+        start_pct: Optional[float] = None,
+        end_pct: Optional[float] = None,
+        batch_size: int = 512,
+    ) -> np.ndarray:
+        if start_pct is not None or end_pct is not None:
+            sp = float(start_pct) if start_pct is not None else 0.0
+            ep = float(end_pct) if end_pct is not None else 1.0
             selector = lambda snap, idx: TokenSelector.percentage_range(snap, idx, sp, ep)
         else:
             selector = lambda snap, idx: TokenSelector.token_range(snap, idx, start, end)
-        
-        results = {}
-        for idx, sel, hs in iter_batched_hidden_states(
-            self.snap, self._indices.tolist(),
-            selector_fn=selector,
-            layers=self.layers,
-            batch_size=batch_size,
-            output_dtype=self.output_dtype,
-        ):
-            results[idx] = hs.mean(axis=0) if len(hs) > 0 else np.zeros((self.n_effective_layers, self.snap.hidden_dim), dtype=self.output_dtype)
-        
-        return np.stack([results[int(idx)] for idx in self._indices], axis=0)
-    
-    def load_aligned_trajectories(self, n_points: int = 32, batch_size: int = 256) -> np.ndarray:
-        selector = lambda snap, idx: TokenSelector.evenly_spaced(snap, idx, n_points)
-        results = {}
-        for idx, sel, hs in iter_batched_hidden_states(
-            self.snap, self._indices.tolist(),
-            selector_fn=selector,
-            layers=self.layers,
-            batch_size=batch_size,
-            output_dtype=self.output_dtype,
-        ):
-            if len(hs) < n_points:
-                padded = np.zeros((n_points, self.n_effective_layers, self.snap.hidden_dim), dtype=self.output_dtype)
-                padded[:len(hs)] = hs
-                results[idx] = padded
-            else:
-                results[idx] = hs[:n_points]
-        
-        return np.stack([results[int(idx)] for idx in self._indices], axis=0)
+
+        reader = BatchReader(self.snap, layers=self.layers, output_dtype=self.output_dtype)
+        out: List[np.ndarray] = []
+        layer_idx = self.layers
+        L = len(layer_idx) if layer_idx is not None else self.snap.n_layers
+        zero = np.zeros((L, self.snap.hidden_dim), dtype=self.output_dtype)
+
+        for start_i in range(0, len(self._indices), max(1, int(batch_size))):
+            batch = self._indices[start_i : start_i + max(1, int(batch_size))].tolist()
+            sels = [selector(self.snap, int(i)) for i in batch]
+            reduced = reader.execute_with_reduction(ReadPlan(sels), reduction='mean')
+            for i in batch:
+                out.append(reduced.get(int(i), zero))
+        if not out:
+            return np.empty((0, L, self.snap.hidden_dim), dtype=self.output_dtype)
+        return np.stack(out, axis=0)
+
+    def load_aligned_trajectories(
+        self,
+        n_points: int = 32,
+        batch_size: int = 256,
+    ) -> np.ndarray:
+        selector = lambda snap, idx: TokenSelector.evenly_spaced(snap, idx, n_points=n_points)
+        reader = BatchReader(self.snap, layers=self.layers, output_dtype=self.output_dtype)
+        out: List[np.ndarray] = []
+        layer_idx = self.layers
+        L = len(layer_idx) if layer_idx is not None else self.snap.n_layers
+        zero = np.zeros((n_points, L, self.snap.hidden_dim), dtype=self.output_dtype)
+
+        for start_i in range(0, len(self._indices), max(1, int(batch_size))):
+            batch = self._indices[start_i : start_i + max(1, int(batch_size))].tolist()
+            sels = [selector(self.snap, int(i)) for i in batch]
+            data = reader.execute(ReadPlan(sels))
+            for sel in sels:
+                hs = data.get(int(sel.sample_idx))
+                if hs is None or hs.size == 0:
+                    out.append(zero)
+                    continue
+                if hs.shape[0] < n_points:
+                    padded = np.zeros((n_points, hs.shape[1], hs.shape[2]), dtype=hs.dtype)
+                    padded[: hs.shape[0]] = hs
+                    out.append(padded)
+                else:
+                    out.append(hs[:n_points])
+        if not out:
+            return np.empty((0, n_points, L, self.snap.hidden_dim), dtype=self.output_dtype)
+        return np.stack(out, axis=0)

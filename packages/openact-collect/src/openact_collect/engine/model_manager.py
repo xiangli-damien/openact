@@ -1,16 +1,16 @@
 import logging
 import random
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
-
+from typing import Any, Dict, List, Optional, Set, Tuple
 import numpy as np
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 from transformers.generation.logits_process import LogitsProcessorList
-
-from openact_collect.schema import GenerationSpec
+from openact_collect.schema import CaptureSpec, GenerationSpec
+from openact_collect.tracing import ActivationRecorder, ActivationTrace
+from openact_collect.tracing.module_resolver import find_transformer_layers
 from openact_core.schema.manifest import ModelSpec
 
 logger = logging.getLogger(__name__)
@@ -28,133 +28,101 @@ class GenerationResult:
     finish_reason: str
     token_ids: List[int]
     keep_indices: List[int]
+    traces: Optional[ActivationTrace] = None
 
 
 class ModelRunner:
-
-    def __init__(
-        self,
-        model_name_or_path: str,
-        device_map: str = "auto",
-        dtype: str = "auto",
-        trust_remote_code: bool = True,
-        attn_implementation: Optional[str] = None,
-    ):
+    def __init__(self, model_name_or_path: str, device_map: str = 'auto', dtype: str = 'auto', trust_remote_code: bool = True, attn_implementation: Optional[str] = None):
         self.model_name_or_path = model_name_or_path
         self.device_map = device_map
         self.dtype_str = dtype
         self.trust_remote_code = trust_remote_code
         self.attn_implementation = attn_implementation
-
         self._model: Optional[PreTrainedModel] = None
         self._tokenizer: Optional[PreTrainedTokenizerBase] = None
         self._config = None
         self._terminator_ids: List[int] = []
         self._probed_n_layers: Optional[int] = None
+        self._decoder_n_layers: Optional[int] = None
         self._loaded = False
 
     def load(self) -> None:
         if self._loaded:
             return
-
-        dtype = self._resolve_dtype(self.dtype_str)
-        self._config = AutoConfig.from_pretrained(
-            self.model_name_or_path, trust_remote_code=self.trust_remote_code
-        )
-
+        self._config = AutoConfig.from_pretrained(self.model_name_or_path, trust_remote_code=self.trust_remote_code)
         model_kwargs: Dict[str, Any] = {
-            "config": self._config,
-            "torch_dtype": dtype,
-            "device_map": self.device_map,
-            "trust_remote_code": self.trust_remote_code,
+            'config': self._config,
+            'torch_dtype': self._resolve_dtype(self.dtype_str),
+            'device_map': self.device_map,
+            'trust_remote_code': self.trust_remote_code,
         }
         if self.attn_implementation:
-            model_kwargs["attn_implementation"] = self.attn_implementation
-
-        self._model = AutoModelForCausalLM.from_pretrained(
-            self.model_name_or_path, **model_kwargs
-        )
+            model_kwargs['attn_implementation'] = self.attn_implementation
+        self._model = AutoModelForCausalLM.from_pretrained(self.model_name_or_path, **model_kwargs)
         self._model.eval()
-
-        self._tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name_or_path, trust_remote_code=self.trust_remote_code
-        )
+        self._tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path, trust_remote_code=self.trust_remote_code)
         if self._tokenizer.pad_token_id is None:
             self._tokenizer.pad_token = self._tokenizer.eos_token
             self._tokenizer.pad_token_id = self._tokenizer.eos_token_id
-
         self._terminator_ids = self._get_termination_tokens()
         self._probed_n_layers = self._probe_n_layers()
+        self._decoder_n_layers = self._probe_decoder_n_layers()
         self._loaded = True
 
-    def _resolve_dtype(self, dtype: str) -> torch.dtype:
-        if dtype == "auto":
+    @staticmethod
+    def _resolve_dtype(dtype: str) -> torch.dtype:
+        if dtype == 'auto':
             if torch.cuda.is_available():
                 return torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
             return torch.float32
-        dtype_map = {
-            "float16": torch.float16,
-            "bfloat16": torch.bfloat16,
-            "float32": torch.float32,
-        }
-        return dtype_map.get(dtype, torch.float16)
+        return {'float16': torch.float16, 'bfloat16': torch.bfloat16, 'float32': torch.float32}.get(dtype, torch.float16)
 
     def _get_termination_tokens(self) -> List[int]:
         terminators = [self._tokenizer.eos_token_id]
-
-        additional = getattr(self._tokenizer, "additional_special_tokens_ids", None)
-        if additional:
-            for tid in additional:
-                if tid not in terminators:
-                    terminators.append(tid)
-
-        for token in ["<|eot_id|>", "<|im_end|>", "</s>"]:
+        for token_id in getattr(self._tokenizer, 'additional_special_tokens_ids', []) or []:
+            if token_id not in terminators:
+                terminators.append(token_id)
+        for token in ('<|eot_id|>', '<|redacted_im_end|>', '</s>'):
             try:
-                tid = self._tokenizer.convert_tokens_to_ids(token)
-                if tid is not None and tid != self._tokenizer.unk_token_id:
-                    if tid not in terminators:
-                        terminators.append(tid)
+                token_id = self._tokenizer.convert_tokens_to_ids(token)
             except Exception:
-                logger.debug(
-                    "Could not resolve termination token %r", token, exc_info=True
-                )
-
+                continue
+            if token_id is not None and token_id != self._tokenizer.unk_token_id and token_id not in terminators:
+                terminators.append(token_id)
         return terminators
 
     def _probe_n_layers(self) -> int:
         try:
-            tok = self._tokenizer("probe", return_tensors="pt").to(self.device)
+            batch = self._tokenizer('probe', return_tensors='pt')
+            batch = {key: value.to(self.device) for key, value in batch.items()}
             with torch.inference_mode():
-                out = self._model(
-                    **tok, output_hidden_states=True, use_cache=False, return_dict=True
-                )
-            hs = out.hidden_states
-            if isinstance(hs, (list, tuple)):
-                return len(hs)
+                output = self._model(**batch, output_hidden_states=True, use_cache=False, return_dict=True)
+            if isinstance(output.hidden_states, (list, tuple)):
+                return len(output.hidden_states)
         except Exception:
-            logger.debug(
-                "Probe forward failed, falling back to config num_hidden_layers",
-                exc_info=True,
-            )
+            logger.debug('Probe forward failed, falling back to config', exc_info=True)
+        cfg = self._config
+        base = getattr(cfg, 'num_hidden_layers', None) or getattr(cfg, 'n_layer', None) or getattr(cfg, 'n_layers', None) or 0
+        return int(base) + 1
 
-        cfg_layers = (
-            getattr(self._config, "num_hidden_layers", None)
-            or getattr(self._config, "n_layer", None)
-            or getattr(self._config, "n_layers", None)
-            or 0
-        )
-        return cfg_layers + 1
+    def _probe_decoder_n_layers(self) -> int:
+        try:
+            return len(find_transformer_layers(self.model))
+        except Exception:
+            cfg = self._config
+            base = getattr(cfg, 'num_hidden_layers', None) or getattr(cfg, 'n_layer', None) or getattr(cfg, 'n_layers', None) or 0
+            return int(base)
 
     @property
     def model(self) -> PreTrainedModel:
         if not self._loaded:
-            raise RuntimeError("Model not loaded. Call load() first.")
+            raise RuntimeError('Model not loaded. Call load() first.')
         return self._model
 
     @property
     def tokenizer(self) -> PreTrainedTokenizerBase:
         if not self._loaded:
-            raise RuntimeError("Tokenizer not loaded. Call load() first.")
+            raise RuntimeError('Model not loaded. Call load() first.')
         return self._tokenizer
 
     @property
@@ -168,46 +136,51 @@ class ModelRunner:
     @property
     def probed_n_layers(self) -> int:
         if self._probed_n_layers is None:
-            raise RuntimeError("Model not loaded. Call load() first.")
+            raise RuntimeError('Model not loaded. Call load() first.')
         return self._probed_n_layers
+
+    @property
+    def decoder_n_layers(self) -> int:
+        if self._decoder_n_layers is None:
+            raise RuntimeError('Model not loaded. Call load() first.')
+        return self._decoder_n_layers
 
     def get_model_spec(self) -> ModelSpec:
         cfg = self._config
-        hidden_dim = (
-            getattr(cfg, "hidden_size", None)
-            or getattr(cfg, "n_embd", None)
-            or getattr(cfg, "d_model", None)
-        )
-        n_heads = getattr(cfg, "num_attention_heads", None) or getattr(cfg, "n_head", None)
         return ModelSpec(
             name=Path(self.model_name_or_path).name,
-            source="huggingface" if "/" in self.model_name_or_path else "local",
+            source='huggingface' if '/' in self.model_name_or_path else 'local',
             identifier=self.model_name_or_path,
             dtype=self.dtype_str,
-            architecture=(
-                cfg.architectures[0]
-                if hasattr(cfg, "architectures") and cfg.architectures
-                else None
-            ),
+            architecture=cfg.architectures[0] if getattr(cfg, 'architectures', None) else None,
             n_layers=self._probed_n_layers,
-            hidden_dim=hidden_dim,
-            n_heads=n_heads,
-            vocab_size=cfg.vocab_size if hasattr(cfg, "vocab_size") else None,
+            n_decoder_layers=self._decoder_n_layers,
+            hidden_dim=getattr(cfg, 'hidden_size', None) or getattr(cfg, 'n_embd', None) or getattr(cfg, 'd_model', None),
+            n_heads=getattr(cfg, 'num_attention_heads', None) or getattr(cfg, 'n_head', None),
+            vocab_size=getattr(cfg, 'vocab_size', None),
             tokenizer_class=type(self._tokenizer).__name__,
         )
 
-    def apply_chat_template(
-        self, messages: List[Dict[str, str]], add_generation_prompt: bool = True
-    ) -> torch.Tensor:
-        if hasattr(self.tokenizer, "apply_chat_template"):
-            return self.tokenizer.apply_chat_template(
-                messages,
-                tokenize=True,
-                add_generation_prompt=add_generation_prompt,
-                return_tensors="pt",
-            )
-        text = "\n".join(m["content"] for m in messages)
-        return self.tokenizer(text, return_tensors="pt").input_ids
+    def render_chat_text(self, messages: List[Dict[str, str]], add_generation_prompt: bool = True) -> str:
+        if hasattr(self.tokenizer, 'apply_chat_template'):
+            rendered = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=add_generation_prompt)
+            if isinstance(rendered, str):
+                return rendered
+            if isinstance(rendered, list):
+                return ''.join(str(part) for part in rendered)
+            return str(rendered)
+        return '\n'.join(message['content'] for message in messages)
+
+    def apply_chat_template(self, messages: List[Dict[str, str]], add_generation_prompt: bool = True) -> torch.Tensor:
+        if hasattr(self.tokenizer, 'apply_chat_template'):
+            result = self.tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=add_generation_prompt, return_tensors='pt')
+            if hasattr(result, 'input_ids'):
+                return result.input_ids
+            if not isinstance(result, torch.Tensor):
+                return torch.tensor([result]) if isinstance(result, list) else result
+            return result
+        text = '\n'.join(message['content'] for message in messages)
+        return self.tokenizer(text, return_tensors='pt').input_ids
 
     @staticmethod
     def _set_seed(seed: int) -> None:
@@ -217,180 +190,121 @@ class ModelRunner:
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
 
-    def _align_hidden_states(
-        self,
-        hidden_states: List[Tuple[torch.Tensor, ...]],
-        generated_length: int,
-    ) -> List[Tuple[torch.Tensor, ...]]:
+    def _align_hidden_states(self, hidden_states: List[Tuple[torch.Tensor, ...]], generated_length: int) -> List[Tuple[torch.Tensor, ...]]:
         if not hidden_states:
             return hidden_states
-        hs_len = len(hidden_states)
-        if hs_len == generated_length:
+        hidden_state_steps = len(hidden_states)
+        if hidden_state_steps in (generated_length, generated_length + 1):
             return hidden_states
-        if hs_len == generated_length + 1:
-            return hidden_states
-        if hs_len > generated_length + 1:
-            warnings.warn(
-                f"Hidden states length {hs_len} > generated_length+1 ({generated_length + 1}); "
-                f"keeping last {generated_length + 1} steps.",
-                UserWarning,
-                stacklevel=2,
-            )
-            return hidden_states[hs_len - (generated_length + 1):]
-        if hs_len > 0:
-            warnings.warn(
-                f"Hidden states length {hs_len} < generated_length {generated_length}; "
-                f"some tokens will lack hidden states.",
-                UserWarning,
-                stacklevel=2,
-            )
+        if hidden_state_steps > generated_length + 1:
+            warnings.warn(f'Hidden states length {hidden_state_steps} > generated_length+1 ({generated_length + 1}); keeping the tail.', UserWarning, stacklevel=2)
+            return hidden_states[-(generated_length + 1):]
+        warnings.warn(f'Hidden states length {hidden_state_steps} < generated_length {generated_length}; some tokens will be truncated.', UserWarning, stacklevel=2)
         return hidden_states
 
-    def _build_keep_indices(
-        self,
-        gen_ids: List[int],
-        aligned_hs_len: int,
-        generated_length: int,
-    ) -> Tuple[List[int], List[int]]:
+    @staticmethod
+    def _build_keep_indices(hidden_states: List[Tuple[torch.Tensor, ...]], generated_ids: List[int], generated_length: int) -> Tuple[List[int], List[int]]:
+        if not hidden_states or generated_length == 0:
+            return [], []
+        has_prompt_step = len(hidden_states) == generated_length + 1
         keep_indices: List[int] = []
         token_ids: List[int] = []
-        has_prompt_step = aligned_hs_len == generated_length + 1
-
-        for i, tid in enumerate(gen_ids):
-            step_idx = i + 1 if has_prompt_step else i
-            if step_idx < aligned_hs_len:
-                keep_indices.append(step_idx)
-                token_ids.append(tid)
-            else:
+        for index, token_id in enumerate(generated_ids):
+            step_idx = index + 1 if has_prompt_step else index
+            if step_idx >= len(hidden_states):
                 break
-
-        if len(keep_indices) < len(gen_ids):
-            warnings.warn(
-                "Some generated tokens are missing hidden states due to alignment mismatch.",
-                UserWarning,
-                stacklevel=2,
-            )
-
+            keep_indices.append(step_idx)
+            token_ids.append(token_id)
         return keep_indices, token_ids
 
-    def generate(
-        self,
-        input_ids: torch.Tensor,
-        gen_spec: GenerationSpec,
-        output_scores: bool = False,
-        logits_processors: Optional[List[Any]] = None,
-        capture_hidden_states: bool = True,
-    ) -> GenerationResult:
-        device = self.device
-        input_ids = input_ids.to(device)
-        attention_mask = torch.ones_like(input_ids, dtype=torch.long, device=device)
-        input_length = input_ids.shape[1]
-
+    def generate(self, input_ids: torch.Tensor, gen_spec: GenerationSpec, output_scores: bool = False, logits_processors: Optional[List[Any]] = None, capture_hidden_states: Optional[bool] = None, capture_spec: Optional[CaptureSpec] = None) -> GenerationResult:
         self._set_seed(int(gen_spec.seed))
-
+        input_ids = input_ids.to(self.device)
+        attention_mask = torch.ones_like(input_ids, dtype=torch.long, device=self.device)
+        input_length = int(input_ids.shape[1])
         do_sample = bool(gen_spec.do_sample) and gen_spec.temperature > 0
-
-        gen_kwargs: Dict[str, Any] = {
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "max_new_tokens": int(gen_spec.max_new_tokens),
-            "do_sample": do_sample,
-            "eos_token_id": self._terminator_ids,
-            "pad_token_id": self.tokenizer.pad_token_id,
-            "return_dict_in_generate": True,
-            "output_scores": output_scores,
-            "output_hidden_states": bool(capture_hidden_states),
+        if capture_spec is not None:
+            capture_hidden_states = bool(capture_spec.hidden_states) if capture_hidden_states is None else bool(capture_hidden_states)
+            output_attentions = bool(capture_spec.attention and capture_spec.attention_save_patterns)
+        else:
+            capture_hidden_states = True if capture_hidden_states is None else bool(capture_hidden_states)
+            output_attentions = False
+        kwargs: Dict[str, Any] = {
+            'input_ids': input_ids,
+            'attention_mask': attention_mask,
+            'max_new_tokens': int(gen_spec.max_new_tokens),
+            'do_sample': do_sample,
+            'eos_token_id': self._terminator_ids,
+            'pad_token_id': self.tokenizer.pad_token_id,
+            'return_dict_in_generate': True,
+            'output_scores': output_scores,
+            'output_hidden_states': bool(capture_hidden_states),
+            'output_attentions': bool(output_attentions),
         }
-
         if do_sample:
-            gen_kwargs["temperature"] = float(gen_spec.temperature)
-            gen_kwargs["top_p"] = float(gen_spec.top_p)
+            kwargs['temperature'] = float(gen_spec.temperature)
+            kwargs['top_p'] = float(gen_spec.top_p)
             if gen_spec.top_k is not None:
-                gen_kwargs["top_k"] = int(gen_spec.top_k)
-        else:
-            gen_kwargs["temperature"] = 1.0
-            gen_kwargs["top_p"] = 1.0
-            gen_kwargs["top_k"] = None
-
+                kwargs['top_k'] = int(gen_spec.top_k)
         if logits_processors:
-            gen_kwargs["logits_processor"] = LogitsProcessorList(logits_processors)
-
+            kwargs['logits_processor'] = LogitsProcessorList(logits_processors)
+        traces: Optional[ActivationTrace] = None
         with torch.inference_mode():
-            output = self.model.generate(**gen_kwargs)
-
+            if capture_spec is not None:
+                with ActivationRecorder(self.model, capture_spec, decoder_n_layers=self.decoder_n_layers) as recorder:
+                    output = self.model.generate(**kwargs)
+                    traces = recorder.trace()
+            else:
+                output = self.model.generate(**kwargs)
+        if getattr(output, 'attentions', None) is not None:
+            output.attentions = None
         sequences = output.sequences
-        gen_ids = sequences[0, input_length:].tolist()
-        generated_length = len(gen_ids)
-
         generated_tokens = sequences[:, input_length:]
-        full_sequence = sequences
-
-        hidden_states = output.hidden_states if hasattr(output, "hidden_states") else []
-        scores = output.scores if output_scores and hasattr(output, "scores") else None
-
-        if capture_hidden_states and hidden_states:
+        generated_ids = sequences[0, input_length:].tolist()
+        generated_length = len(generated_ids)
+        hidden_states = list(output.hidden_states) if capture_hidden_states and getattr(output, 'hidden_states', None) else []
+        scores = list(output.scores) if output_scores and getattr(output, 'scores', None) else None
+        if hidden_states:
             hidden_states = self._align_hidden_states(hidden_states, generated_length)
-            aligned_hs_len = len(hidden_states)
-            keep_indices, token_ids = self._build_keep_indices(
-                gen_ids, aligned_hs_len, generated_length
-            )
+            keep_indices, token_ids = self._build_keep_indices(hidden_states, generated_ids, generated_length)
         else:
-            hidden_states = []
-            keep_indices = []
-            token_ids = list(gen_ids)
-
-        finish_reason = self._determine_finish_reason(
-            generated_tokens, generated_length, gen_spec.max_new_tokens
-        )
-
+            keep_indices, token_ids = [], list(generated_ids)
         return GenerationResult(
             input_ids=input_ids,
             generated_tokens=generated_tokens,
-            full_sequence=full_sequence,
+            full_sequence=sequences,
             input_length=input_length,
             generated_length=generated_length,
             hidden_states=hidden_states,
             scores=scores,
-            finish_reason=finish_reason,
+            finish_reason=self._determine_finish_reason(generated_tokens, generated_length, gen_spec.max_new_tokens),
             token_ids=token_ids,
             keep_indices=keep_indices,
+            traces=traces,
         )
 
-    def _determine_finish_reason(
-        self,
-        generated_tokens: torch.Tensor,
-        generated_length: int,
-        max_tokens: int,
-    ) -> str:
+    def _determine_finish_reason(self, generated_tokens: torch.Tensor, generated_length: int, max_tokens: int) -> str:
         if generated_length == 0:
-            return "empty"
+            return 'empty'
         last_token = int(generated_tokens[0, -1].item())
         if last_token in self._terminator_ids:
-            return "eos"
+            return 'eos'
         if generated_length >= max_tokens:
-            return "length"
-        return "other"
+            return 'length'
+        return 'other'
 
     def decode(self, token_ids: List[int], skip_special_tokens: bool = True) -> str:
-        return self.tokenizer.decode(
-            token_ids,
-            skip_special_tokens=skip_special_tokens,
-            clean_up_tokenization_spaces=False,
-        )
+        return self.tokenizer.decode(token_ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False)
 
     def encode(self, text: str) -> List[int]:
         return self.tokenizer.encode(text, add_special_tokens=False)
 
     def get_special_ids(self) -> Set[int]:
-        return set(getattr(self._tokenizer, "all_special_ids", []) or [])
+        return set(getattr(self._tokenizer, 'all_special_ids', []) or [])
 
     def unload(self) -> None:
-        if self._model is not None:
-            del self._model
-            self._model = None
-        if self._tokenizer is not None:
-            del self._tokenizer
-            self._tokenizer = None
+        self._model = None
+        self._tokenizer = None
         self._loaded = False
         import gc
         gc.collect()
@@ -398,5 +312,5 @@ class ModelRunner:
             torch.cuda.empty_cache()
 
     def __repr__(self) -> str:
-        status = "loaded" if self._loaded else "not loaded"
-        return f"ModelRunner('{self.model_name_or_path}', {status})"
+        state = 'loaded' if self._loaded else 'not loaded'
+        return f"ModelRunner({self.model_name_or_path!r}, {state})"

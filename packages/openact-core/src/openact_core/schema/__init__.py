@@ -10,7 +10,6 @@ from openact_core.schema.manifest import (
     StorageConfig,
 )
 from openact_core.schema.status import SampleStatus
-
 __all__ = [
     "Manifest",
     "ModelSpec",

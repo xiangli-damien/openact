@@ -1,44 +1,17 @@
-"""
-XSTest safety data collection task.
-
-Dataset: Röttger et al., "XSTest: A Test Suite for Identifying Exaggerated
-Safety Behaviours in Large Language Models"
-
-  - ~250 *safe* prompts that well-aligned models should answer (split="benign")
-  - ~200 *unsafe* prompts that models should refuse (split="harmful")
-
-The key research value is measuring **over-refusal**: does the model refuse
-benign prompts that merely *sound* dangerous?
-
-Scale estimation (greedy + warm×2 + hot×2 = 5 gens):
-  - 450 × 5 = 2250 total
-  - With higher n_gen: 450 × 7 = 3150
-
-Supported HuggingFace sources:
-  1. ``nreimers/XSTest``
-  2. ``PaulR/xstest``
-"""
-
 from typing import Any, Dict, List, Optional
-
 from openact_collect.schema import GenerationProfile
 from openact_collect.tasks.registry import TaskRegistry
 from openact_collect.tasks.safety.base import SafetyTask
-
-
 _HF_SOURCES = [
-    ("nreimers/XSTest", None, "test"),
-    ("PaulR/xstest", None, "test"),
+    ("Paul/XSTest", None, "train"),
+    ("AlignmentResearch/XSTest", None, "validation"),
 ]
-
-
 @TaskRegistry.register("xstest")
 class XSTestTask(SafetyTask):
     task_name = "xstest"
-    source = "nreimers/XSTest"
+    source = "Paul/XSTest"
     language = "en"
     default_template = "raw"
-
     def __init__(
         self,
         max_samples: Optional[int] = None,
@@ -57,29 +30,22 @@ class XSTestTask(SafetyTask):
             artifact_loader=None,
             **kwargs,
         )
-
     def load_behaviors(self) -> List[Dict[str, Any]]:
-        from datasets import load_dataset
+        from openact_collect.data import HFDatasetSpec, load_hf_dataset
         import warnings
-
         dataset = None
         for hf_id, cfg, split_name in _HF_SOURCES:
             try:
-                if cfg:
-                    dataset = load_dataset(hf_id, cfg, split=split_name)
-                else:
-                    dataset = load_dataset(hf_id, split=split_name)
+                dataset = load_hf_dataset(HFDatasetSpec(name=hf_id, config=cfg, split=split_name))
                 self.source = hf_id
                 break
             except Exception:
                 continue
-
         if dataset is None:
             raise RuntimeError(
                 "Could not load XSTest from any known HuggingFace source. "
                 f"Tried: {[s[0] for s in _HF_SOURCES]}"
             )
-
         behaviors: List[Dict[str, Any]] = []
         for i, item in enumerate(dataset):
             prompt = (
@@ -89,45 +55,45 @@ class XSTestTask(SafetyTask):
                 or ""
             )
             if not prompt.strip():
+                content = item.get("content")
+                if isinstance(content, (list, tuple)) and content:
+                    prompt = str(content[0])
+                elif isinstance(content, str):
+                    prompt = content
+            if not str(prompt).strip():
                 continue
-
-            # Determine split from label
+            prompt = str(prompt).strip()
             label = (
-                item.get("label", "")
-                or item.get("type", "")
+                item.get("label")
+                or item.get("gen_target")
+                or item.get("proxy_gen_target")
                 or item.get("safe", "")
             )
             label_str = str(label).lower().strip()
-
             if label_str in ("safe", "1", "true", "benign"):
                 b_split = "benign"
             elif label_str in ("unsafe", "0", "false", "harmful"):
                 b_split = "harmful"
             else:
-                # Some versions use a "type" column
                 xstest_type = item.get("type", "").lower()
                 if "safe" in xstest_type or "contrast" in xstest_type:
                     b_split = "benign"
                 else:
                     b_split = "harmful"
-
             category = item.get("type", item.get("category", ""))
             note = item.get("note", item.get("focus", ""))
-
             behaviors.append(
                 {
                     "behavior_id": f"xstest_{i:04d}",
-                    "goal": prompt.strip(),
+                    "goal": prompt,
                     "category": str(category),
                     "source": "xstest",
                     "split": b_split,
                     "note": str(note),
                 }
             )
-
         if not behaviors:
             warnings.warn(
                 "XSTest loaded but contained no usable prompts.", UserWarning
             )
-
         return behaviors

@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
 from typing import Dict, Optional
-
 from openact_core.tasks.descriptor import (
     TaskDescriptor,
     TASK_DESCRIPTORS,
@@ -15,14 +13,10 @@ from openact_core.tasks.descriptor import (
     EVAL_LLM_JUDGE,
     EVAL_SAFETY,
 )
-
-
 class EvalStrategy:
     PARSER = EVAL_PARSER
     LLM_JUDGE = EVAL_LLM_JUDGE
     SAFETY = EVAL_SAFETY
-
-
 @dataclass(frozen=True)
 class EvalConfig:
     judge_prompt: Optional[str] = None
@@ -33,13 +27,11 @@ class EvalConfig:
     guard_model: str = "meta-llama/Llama-Guard-3-8B"
     guard_max_new_tokens: int = 32
     guard_label_request: bool = False
-
-
 EVAL_CONFIGS: Dict[str, EvalConfig] = {
-    "gsm8k": EvalConfig(numeric_rel_tol=1e-06),
-    "mgsm": EvalConfig(numeric_rel_tol=1e-06),
-    "math": EvalConfig(numeric_rel_tol=0.001),
-    "theoremqa": EvalConfig(numeric_rel_tol=0.001),
+    "gsm8k": EvalConfig(numeric_rel_tol=0.0, numeric_abs_tol=1e-06),
+    "mgsm": EvalConfig(numeric_rel_tol=0.0, numeric_abs_tol=1e-06),
+    "math": EvalConfig(numeric_rel_tol=0.0, numeric_abs_tol=1e-06),
+    "theoremqa": EvalConfig(numeric_rel_tol=0.0, numeric_abs_tol=1e-06),
     "jbb": EvalConfig(
         guard_model="meta-llama/Llama-Guard-3-8B",
         guard_label_request=True,
@@ -61,7 +53,6 @@ EVAL_CONFIGS: Dict[str, EvalConfig] = {
         judge_model="gpt-4o-mini",
     ),
 }
-
 _TASK_DEFAULTS = {
     "gsm8k": dict(eval_strategy=EVAL_PARSER, parser_type="gsm8k", matcher_type="numeric", domain="math"),
     "mgsm": dict(eval_strategy=EVAL_PARSER, parser_type="mgsm", matcher_type="numeric", domain="math"),
@@ -79,8 +70,6 @@ _TASK_DEFAULTS = {
     "wildguardtest": dict(eval_strategy=EVAL_SAFETY, domain="safety"),
     "aegis2": dict(eval_strategy=EVAL_SAFETY, domain="safety"),
 }
-
-
 def _ensure_registered() -> None:
     for name, kw in _TASK_DEFAULTS.items():
         if not has_descriptor(name):
@@ -94,23 +83,13 @@ def _ensure_registered() -> None:
                 is_safety=kw.get("eval_strategy") == EVAL_SAFETY,
             )
             register_task(descriptor)
-
-
 _ensure_registered()
-
-
 def get_eval_descriptor(task_name: str) -> TaskDescriptor:
     return get_descriptor(task_name)
-
-
 def get_eval_config(task_name: str) -> EvalConfig:
     return EVAL_CONFIGS.get(task_name.lower(), EvalConfig())
-
-
 def register_eval_config(task_name: str, config: EvalConfig) -> None:
     EVAL_CONFIGS[task_name.lower()] = config
-
-
 def register_eval_strategy(
     task_name: str,
     eval_strategy: str,
@@ -134,15 +113,10 @@ def register_eval_strategy(
     register_task(descriptor)
     if eval_config is not None:
         register_eval_config(task_name, eval_config)
-
-
 EvalTaskDescriptor = TaskDescriptor
 EVAL_DESCRIPTORS = TASK_DESCRIPTORS
-
-
 def get_registered_template_names(task_name: str):
     from openact_core.tasks.descriptor import (
         get_registered_template_names as _fn,
     )
-
     return _fn(task_name)

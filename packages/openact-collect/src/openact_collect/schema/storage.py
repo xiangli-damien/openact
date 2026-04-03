@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 from typing import Dict, Any
-
-
 @dataclass
 class StorageSpec:
     format_version: str = '1.0.0'
@@ -12,11 +10,9 @@ class StorageSpec:
     chunk_hidden_dim: int = 512
     store_token_offsets: bool = True
     zarr_store_type: str = 'directory'
-
     def to_dict(self) -> Dict[str, Any]:
         from dataclasses import asdict
         return asdict(self)
-
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> 'StorageSpec':
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})

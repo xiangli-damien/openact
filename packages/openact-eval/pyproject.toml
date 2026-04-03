@@ -25,10 +25,14 @@ dependencies = [
     "openact-core>=0.1.0",
     "numpy>=1.21.0",
     "pandas>=1.4.0",
+    "pyarrow>=10.0.0",
     "tqdm>=4.60.0",
 ]
 
 [project.optional-dependencies]
+math = [
+    "sympy>=1.12",
+]
 llm = [
     "openai>=1.0.0",
     "anthropic>=0.20.0",
@@ -38,6 +42,7 @@ safety = [
     "transformers>=4.35.0",
 ]
 all = [
+    "openact-eval[math]",
     "openact-eval[llm]",
     "openact-eval[safety]",
 ]

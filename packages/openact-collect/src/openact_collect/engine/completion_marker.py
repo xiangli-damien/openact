@@ -1,23 +1,14 @@
-"""
-Run completion marker: writes _SUCCESS JSON when a run finishes.
-"""
-
 import json
 import socket
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any
-
-
 class CompletionMarker:
-    """Write _SUCCESS marker file with completion time and optional stats."""
-
     @staticmethod
     def mark_complete(
         run_dir: Path,
         stats: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Write _SUCCESS with completed_at, hostname, run_dir, stats."""
         run_dir = Path(run_dir)
         completion_info = {
             "completed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -29,8 +20,6 @@ class CompletionMarker:
         with open(success_file, "w") as f:
             json.dump(completion_info, f, indent=2, default=str)
         return completion_info
-
     @staticmethod
     def check_complete(run_dir: Path) -> bool:
-        """Return True if _SUCCESS marker exists."""
         return (Path(run_dir) / "_SUCCESS").exists()

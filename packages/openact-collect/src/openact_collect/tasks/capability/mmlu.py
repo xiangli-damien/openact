@@ -1,18 +1,8 @@
-"""
-MMLU data-loading task.
+from typing import Iterator, List, Optional
 
-Loads from ``cais/mmlu`` and yields formatted ``TaskItem`` objects.
-"""
-
-from typing import Iterator, Optional, List
-
-from datasets import load_dataset
-
+from openact_collect.data import HFDatasetSpec, load_hf_dataset
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
-
-
-# Full list of MMLU subjects.
 ALL_SUBJECTS = [
     "abstract_algebra", "anatomy", "astronomy", "business_ethics",
     "clinical_knowledge", "college_biology", "college_chemistry",
@@ -35,8 +25,6 @@ ALL_SUBJECTS = [
     "public_relations", "security_studies", "sociology",
     "us_foreign_policy", "virology", "world_religions",
 ]
-
-
 @TaskRegistry.register("mmlu")
 class MMLUTask(Task):
     task_name = "mmlu"
@@ -44,7 +32,6 @@ class MMLUTask(Task):
     split = "test"
     language = "en"
     default_template = "zot"
-
     def __init__(
         self,
         subjects: Optional[List[str]] = None,
@@ -58,39 +45,48 @@ class MMLUTask(Task):
         self.subjects = subjects or ALL_SUBJECTS
         self.max_per_subject = max_per_subject
         self._datasets = {}
-
     def _load_subject(self, subject: str):
         if subject not in self._datasets:
-            self._datasets[subject] = load_dataset(
-                "cais/mmlu", subject, split=self.split
+            self._datasets[subject] = load_hf_dataset(
+                HFDatasetSpec(name="cais/mmlu", config=subject, split=self.split)
             )
 
+    def estimate_size(self) -> Optional[int]:
+        total = 0
+        for subject in self.subjects:
+            self._load_subject(subject)
+            ds = self._datasets[subject]
+            try:
+                n = len(ds)
+            except Exception:
+                return None
+            if self.max_per_subject is not None:
+                n = min(n, int(self.max_per_subject))
+            total += n
+            if self.max_samples is not None and total >= self.max_samples:
+                return int(self.max_samples)
+        return min(total, self.max_samples) if self.max_samples else total
     def iter_items(self) -> Iterator[TaskItem]:
-        template = self.get_prompt_template()
         total_idx = 0
-
         for subject in self.subjects:
             self._load_subject(subject)
             dataset = self._datasets[subject]
             subject_display = subject.replace("_", " ").title()
             subject_count = 0
-
             for item in dataset:
                 if self.max_samples and total_idx >= self.max_samples:
                     return
                 if self.max_per_subject and subject_count >= self.max_per_subject:
                     break
-
                 choices = item["choices"]
                 if len(choices) != 4:
                     continue
-
                 if self._template_variant == "zot":
                     question_full = (
                         f"{item['question']}\n\n"
                         f"A. {choices[0]}\nB. {choices[1]}\nC. {choices[2]}\nD. {choices[3]}"
                     )
-                    prompt_text = template.format_safe(question=question_full)
+                    prompt_fields = {"question": question_full}
                 else:
                     prompt_kwargs = {
                         "subject": subject_display,
@@ -100,15 +96,13 @@ class MMLUTask(Task):
                         "choice_c": choices[2],
                         "choice_d": choices[3],
                     }
-                    prompt_text = template.format_safe(**prompt_kwargs)
-
+                    prompt_fields = prompt_kwargs
                 answer_idx = item["answer"]
                 answer_letter = ["A", "B", "C", "D"][answer_idx]
-
                 yield TaskItem(
                     sample_idx=total_idx,
                     sample_id=f"mmlu_{subject}_{subject_count}",
-                    prompt_text=prompt_text,
+                    prompt_fields=prompt_fields,
                     ground_truth=answer_letter,
                     meta={
                         "subject": subject,

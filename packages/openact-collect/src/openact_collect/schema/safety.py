@@ -1,16 +1,11 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
-
 from openact_collect.schema.generation import GenerationProfile
-
-
 DEFAULT_SAFETY_PROFILES = {
     "greedy": GenerationProfile(name="greedy", temperature=0.0, do_sample=False, n_gen=1),
     "warm": GenerationProfile(name="warm", temperature=0.7, do_sample=True, n_gen=2),
     "hot": GenerationProfile(name="hot", temperature=1.0, do_sample=True, n_gen=2),
 }
-
-
 @dataclass
 class SafetySpec:
     is_safety_run: bool = False
@@ -19,16 +14,12 @@ class SafetySpec:
     prompt_variant_types: List[str] = field(default_factory=list)
     splits: List[str] = field(default_factory=list)
     profiles: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-
     def to_dict(self) -> Dict[str, Any]:
         from dataclasses import asdict
         return asdict(self)
-
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "SafetySpec":
         return cls(**d)
-
-
 def build_profiles_from_cli(profile_str: str) -> Dict[str, GenerationProfile]:
     profiles = {}
     for part in profile_str.split():
