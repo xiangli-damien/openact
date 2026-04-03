@@ -2,7 +2,6 @@ import hashlib
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterator, List, Optional, Tuple
-
 from openact_collect.schema import (
     DEFAULT_SAFETY_PROFILES,
     GenerationProfile,
@@ -11,8 +10,6 @@ from openact_collect.schema import (
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.safety.artifacts import ArtifactLoader
 from openact_core.tasks.templates import PromptTemplate
-
-
 @dataclass
 class SafetyTaskItem(TaskItem):
     behavior_id: str = ""
@@ -22,7 +19,6 @@ class SafetyTaskItem(TaskItem):
     attack_method: str = ""
     profile: str = "default"
     rep_idx: int = 0
-
     def parquet_meta(self) -> Dict[str, Any]:
         meta: Dict[str, Any] = {
             "language": self.language,
@@ -37,11 +33,8 @@ class SafetyTaskItem(TaskItem):
         if "seed" in self.meta:
             meta["seed"] = self.meta["seed"]
         return meta
-
-
 class SafetyTask(Task):
     task_type: str = "safety"
-
     def __init__(
         self,
         max_samples: Optional[int] = None,
@@ -59,10 +52,8 @@ class SafetyTask(Task):
         self.include_artifacts = include_artifacts
         self.artifact_loader = artifact_loader
         self._active_splits = self._parse_splits(split)
-
     def get_profiles(self) -> Dict[str, GenerationProfile]:
         return self.profiles
-
     def get_safety_spec(self) -> Optional[SafetySpec]:
         methods: List[str] = []
         if self.artifact_loader is not None:
@@ -78,17 +69,14 @@ class SafetyTask(Task):
             splits=list(self._active_splits),
             profiles={name: prof.to_dict() for name, prof in self.profiles.items()},
         )
-
     @staticmethod
     def _parse_splits(split: str) -> List[str]:
         if split in ("all", "*"):
             return ["harmful", "benign"]
         return [s.strip() for s in split.split(",")]
-
     @abstractmethod
     def load_behaviors(self) -> List[Dict[str, Any]]:
         ...
-
     def build_prompt_variants(
         self, behavior: Dict[str, Any]
     ) -> List[Tuple[str, str, str]]:
@@ -101,7 +89,6 @@ class SafetyTask(Task):
         if not variants:
             variants.append((behavior["goal"], "goal", "none"))
         return variants
-
     @staticmethod
     def _derive_seed(
         behavior_id: str,
@@ -113,13 +100,8 @@ class SafetyTask(Task):
         key = f"{behavior_id}:{variant}:{profile_name}:{rep}:{base_seed}"
         h = hashlib.sha256(key.encode()).hexdigest()
         return int(h[:8], 16) % 2**31
-
     def estimate_size(self) -> Optional[int]:
-        """Return None to force full plan materialization, ensuring sample_idx
-        consistency between Zarr allocation and iter_items yield order.
-        """
         return None
-
     def iter_items(self) -> Iterator[SafetyTaskItem]:
         behaviors = self.load_behaviors()
         idx = 0
@@ -164,7 +146,6 @@ class SafetyTask(Task):
                         )
                         yield item
                         idx += 1
-
     def get_prompt_template(self) -> PromptTemplate:
         return PromptTemplate(
             name=f"{self.task_name}_raw",

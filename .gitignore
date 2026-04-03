@@ -1,26 +1,44 @@
-# python
+# ── Python ─────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+*$py.class
 *.so
+.Python
 .venv/
 venv/
 ENV/
 .env
+.env.*
+!.env.example
 *.egg-info/
+.eggs/
 dist/
 build/
+*.egg
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
 
-# IDE
+# ── IDE / local tooling ─────────────────────────────────────────────────
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# logs/temp
+# ── Logs / temp ───────────────────────────────────────────────────────
 *.log
 *.tmp
+*.temp
+.cache/
 
-# ====== DO NOT COMMIT DATA ARTIFACTS ======
+# ── OpenAct: runs & tensor / table artifacts ─────────────────────────
 runs/
 artifacts/
 exports/
@@ -29,9 +47,20 @@ exports/
 *.npz
 *.npy
 *.pt
+*.pth
 *.ckpt
+*.bin
 *.safetensors
 _SUCCESS
 
-# OS
+# ── Text dumps / notes (keep docs in .md or force-add if needed) ───────
+*.txt
+
+# ── Inspect / sanity JSON written next to repo or /tmp copies ──────────
+datasets_inspect.json
+*_sanity.json
+*_subset_sanity.json
+
+# ── OS ────────────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db

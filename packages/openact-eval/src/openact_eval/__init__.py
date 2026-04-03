@@ -12,7 +12,6 @@ from openact_eval.evaluators.safety_evaluators import (
     RefusalHeuristicEvaluator,
 )
 from openact_eval.evaluators.registry import EvaluatorRegistry, auto_select_evaluator
-
 __all__ = [
     "Evaluator",
     "EvalResult",

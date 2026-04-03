@@ -25,10 +25,10 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.21.0",
-    "zarr>=2.14.0",
+    "zarr>=2.14.0,<3",
     "pandas>=1.4.0",
     "pyarrow>=10.0.0",
-    "numcodecs>=0.11.0",
+    "numcodecs>=0.11.0,<0.14",
     "pyyaml>=6.0",
 ]
 

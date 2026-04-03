@@ -1,7 +1,3 @@
-# MMLU - Massive Multitask Language Understanding
-# Source: cais/mmlu
-# Parser: mc4 (ABCD) | Answer prefix: "Answer"
-
 variants:
   zot:
     template: |

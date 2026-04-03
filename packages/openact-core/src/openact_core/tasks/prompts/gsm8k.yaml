@@ -1,7 +1,3 @@
-# GSM8K - Grade-school math (8K problems)
-# Source: openai/gsm8k
-# Parser: numeric | Answer prefix: "Answer"
-
 variants:
   zot:
     template: |

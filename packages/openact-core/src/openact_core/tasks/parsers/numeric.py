@@ -1,14 +1,5 @@
-"""
-Numeric answer parser for tasks whose ground truth is a number.
-
-Covers GSM8K and any other task where the expected answer is an integer or
-decimal.  The extraction cascade tries several common formats in priority
-order so that even poorly-formatted model outputs are handled gracefully.
-"""
-
 import re
 from typing import Optional
-
 from openact_core.tasks.parsers.base import (
     AnswerParser,
     normalize_numeric,
@@ -16,60 +7,54 @@ from openact_core.tasks.parsers.base import (
     find_last_number,
     _RE_NUMBER,
 )
-
-
+from openact_core.tasks.templates import ANSWER_PREFIXES
+def _build_answer_prefix_regex() -> str:
+    prefixes = sorted(set(ANSWER_PREFIXES.values()) | {"Answer"}, key=len, reverse=True)
+    return "|".join(re.escape(p) for p in prefixes)
+_ANSWER_PREFIX_RE = _build_answer_prefix_regex()
 class NumericParser(AnswerParser):
-    """Extract and normalize numeric answers.
-
-    Extraction priority
-    -------------------
-    1. ``Answer: <number>``            (explicit marker)
-    2. ``the answer is <number>``      (natural-language marker)
-    3. ``#### <number>``               (GSM8K gold format)
-    4. ``\\boxed{<number>}``           (LaTeX)
-    5. Last number in response         (fallback)
-
-    All steps are case-insensitive except the LaTeX pattern.
-    """
-
-    # Pre-compiled patterns ordered by specificity.
     _PATTERNS = [
-        # 1. "Answer: 42" or "answer: -3.14"
         re.compile(
-            r"[Aa]nswer\s*[:=]\s*\$?\s*(" + _RE_NUMBER + r")",
+            rf"(?:^|\n)\s*(?:{_ANSWER_PREFIX_RE})\s*[:=：]\s*(.+?)(?:\n|$)",
+            re.IGNORECASE,
         ),
-        # 2. "the answer is 42"
         re.compile(
-            r"[Tt]he\s+answer\s+is\s*[:=]?\s*\$?\s*(" + _RE_NUMBER + r")",
+            r"[Tt]he\s+answer\s+is\s*[:=]?\s*(.+?)(?:\n|$)",
         ),
-        # 3. "#### 42"
         re.compile(
             r"####\s*(" + _RE_NUMBER + r")",
         ),
     ]
-
     def extract(self, response: str) -> Optional[str]:
         if not response:
             return None
-
-        # Try structured patterns first.
-        for pattern in self._PATTERNS:
-            match = pattern.search(response)
-            if match:
-                return match.group(1).replace(",", "")
-
-        # LaTeX \boxed{...}
+        prefix_matches = list(self._PATTERNS[0].finditer(response))
+        if prefix_matches:
+            candidate = prefix_matches[-1].group(1).strip()
+            nums = re.findall(_RE_NUMBER, candidate)
+            if nums:
+                return nums[-1].replace(",", "")
+            if candidate:
+                return candidate
+        answer_is_matches = list(self._PATTERNS[1].finditer(response))
+        if answer_is_matches:
+            candidate = answer_is_matches[-1].group(1).strip()
+            nums = re.findall(_RE_NUMBER, candidate)
+            if nums:
+                return nums[-1].replace(",", "")
+            if candidate:
+                return candidate
+        hash_matches = list(self._PATTERNS[2].finditer(response))
+        if hash_matches:
+            return hash_matches[-1].group(1).replace(",", "")
         boxed = extract_boxed(response)
         if boxed is not None:
-            # The boxed content might itself be an expression; try to pull a
-            # number out of it.
             num = find_last_number(boxed)
             if num is not None:
                 return num
-            return boxed.strip()
-
-        # Ultimate fallback: last number in text.
+            boxed = boxed.strip()
+            if boxed:
+                return boxed
         return find_last_number(response)
-
     def normalize(self, answer: Optional[str]) -> str:
         return normalize_numeric(answer)

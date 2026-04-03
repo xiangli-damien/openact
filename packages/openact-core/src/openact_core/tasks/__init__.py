@@ -40,9 +40,7 @@ from openact_core.tasks.descriptor import (
     EVAL_LLM_JUDGE,
     EVAL_SAFETY,
 )
-
 __all__ = [
-    # templates
     "PromptTemplate",
     "get_template",
     "get_templates",
@@ -52,7 +50,6 @@ __all__ = [
     "load_templates_from_dir",
     "has_template",
     "ANSWER_PREFIXES",
-    # parsers
     "AnswerParser",
     "get_parser",
     "list_parsers",
@@ -71,7 +68,6 @@ __all__ = [
     "normalize_math_expr",
     "extract_boxed",
     "find_last_number",
-    # descriptors
     "TaskDescriptor",
     "get_descriptor",
     "list_tasks_by_domain",

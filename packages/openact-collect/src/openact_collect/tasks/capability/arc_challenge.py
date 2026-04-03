@@ -1,15 +1,8 @@
-"""
-ARC-Challenge data-loading task.
-"""
-
 from typing import Iterator, Optional
 
-from datasets import load_dataset
-
+from openact_collect.data import HFDatasetSpec, load_hf_dataset
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
-
-
 @TaskRegistry.register("arc_challenge")
 class ARCChallengeTask(Task):
     task_name = "arc_challenge"
@@ -17,7 +10,6 @@ class ARCChallengeTask(Task):
     split = "test"
     language = "en"
     default_template = "zot"
-
     def __init__(
         self,
         max_samples: Optional[int] = None,
@@ -27,21 +19,24 @@ class ARCChallengeTask(Task):
     ):
         super().__init__(max_samples=max_samples, split=split, template=template, **kwargs)
         self._dataset = None
-
     def _load_dataset(self):
         if self._dataset is None:
-            self._dataset = load_dataset(
-                "allenai/ai2_arc", "ARC-Challenge", split=self.split
+            self._dataset = load_hf_dataset(
+                HFDatasetSpec(name="allenai/ai2_arc", config="ARC-Challenge", split=self.split)
             )
 
+    def estimate_size(self) -> Optional[int]:
+        self._load_dataset()
+        try:
+            n = len(self._dataset)
+        except Exception:
+            return None
+        return min(n, self.max_samples) if self.max_samples else n
     def iter_items(self) -> Iterator[TaskItem]:
         self._load_dataset()
-        template = self.get_prompt_template()
-
         for idx, item in enumerate(self._dataset):
             if self.max_samples and idx >= self.max_samples:
                 break
-
             question = item["question"]
             labels = item["choices"]["label"]
             texts = item["choices"]["text"]
@@ -50,17 +45,14 @@ class ARCChallengeTask(Task):
             )
             choice_labels = "".join(labels)
             answer_key = item["answerKey"]
-
-            prompt_text = template.format_safe(
-                question=question,
-                choices_text=choices_text,
-                choice_labels=choice_labels,
-            )
-
             yield TaskItem(
                 sample_idx=idx,
                 sample_id=f"arc_challenge_{idx}",
-                prompt_text=prompt_text,
+                prompt_fields={
+                    "question": question,
+                    "choices_text": choices_text,
+                    "choice_labels": choice_labels,
+                },
                 ground_truth=answer_key,
                 meta={
                     "question": question,

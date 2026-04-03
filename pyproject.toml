@@ -25,19 +25,23 @@ classifiers = [
 ]
 
 dependencies = [
-    "openact-core",
-    "openact-collect",
-    "openact-eval",
+    "openact-core @ file:./packages/openact-core",
+    "openact-collect @ file:./packages/openact-collect",
+    "openact-eval @ file:./packages/openact-eval",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
+    "pytest-json-report>=1.5",
     "pytest-cov",
     "black",
     "ruff",
     "mypy",
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build]
 packages = ["src/openact"]
@@ -60,5 +64,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 markers = [
     "gpu: marks tests as requiring GPU (deselect with '-m \"not gpu\"')",
+    "network: marks tests as requiring network (e.g. HuggingFace Hub)",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]

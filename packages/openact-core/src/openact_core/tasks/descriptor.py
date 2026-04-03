@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 EVAL_PARSER = "parser"
 EVAL_LLM_JUDGE = "llm_judge"
@@ -15,7 +15,7 @@ class TaskDescriptor:
     eval_strategy: str = EVAL_PARSER
     language: str = "en"
     default_split: str = "test"
-    default_template: str = "cot"
+    default_template: str = "zot"
     available_templates: tuple = ()
     task_type: str = "benchmark"
     domain: str = "general"
@@ -28,9 +28,8 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         source="openai/gsm8k",
         parser_type="numeric",
         matcher_type="numeric",
-        eval_strategy=EVAL_PARSER,
-        default_template="cot",
-        available_templates=("cot", "direct", "simple"),
+        default_template="zot",
+        available_templates=("zot", "direct", "simple"),
         domain="math",
     ),
     "mgsm": TaskDescriptor(
@@ -38,9 +37,8 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         source="juletxara/mgsm",
         parser_type="numeric",
         matcher_type="numeric",
-        eval_strategy=EVAL_PARSER,
-        default_template="cot",
-        available_templates=("cot", "cot_native", "direct", "simple"),
+        default_template="zot",
+        available_templates=("zot", "zot_native", "direct", "simple"),
         domain="math",
     ),
     "math": TaskDescriptor(
@@ -48,9 +46,8 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         source="EleutherAI/hendrycks_math",
         parser_type="math",
         matcher_type="math",
-        eval_strategy=EVAL_PARSER,
-        default_template="cot",
-        available_templates=("cot", "boxed", "simple"),
+        default_template="zot",
+        available_templates=("zot", "simple"),
         domain="math",
     ),
     "theoremqa": TaskDescriptor(
@@ -58,9 +55,8 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         source="TIGER-Lab/TheoremQA",
         parser_type="theoremqa",
         matcher_type="type_aware",
-        eval_strategy=EVAL_PARSER,
-        default_template="cot",
-        available_templates=("cot", "simple"),
+        default_template="zot",
+        available_templates=("zot", "simple"),
         domain="math",
     ),
     "mmlu": TaskDescriptor(
@@ -68,9 +64,8 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         source="cais/mmlu",
         parser_type="mc4",
         matcher_type="exact",
-        eval_strategy=EVAL_PARSER,
-        default_template="cot",
-        available_templates=("cot", "simple"),
+        default_template="zot",
+        available_templates=("zot", "structured", "simple"),
         domain="knowledge",
     ),
     "arc_challenge": TaskDescriptor(
@@ -78,19 +73,18 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         source="allenai/ai2_arc",
         parser_type="mc5",
         matcher_type="exact",
-        eval_strategy=EVAL_PARSER,
-        default_template="cot",
-        available_templates=("cot", "simple"),
+        default_template="zot",
+        available_templates=("zot", "simple"),
         domain="reasoning",
     ),
     "commonsenseqa": TaskDescriptor(
         name="commonsenseqa",
-        source="tau/commonsense_qa",
+        source="commonsense_qa",
         parser_type="mc5",
         matcher_type="exact",
-        eval_strategy=EVAL_PARSER,
-        default_template="cot",
-        available_templates=("cot", "simple"),
+        default_split="validation",
+        default_template="zot",
+        available_templates=("zot", "simple"),
         domain="reasoning",
     ),
     "belebele": TaskDescriptor(
@@ -98,9 +92,8 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         source="facebook/belebele",
         parser_type="mc4",
         matcher_type="exact",
-        eval_strategy=EVAL_PARSER,
-        default_template="cot",
-        available_templates=("cot", "simple"),
+        default_template="zot",
+        available_templates=("zot", "structured", "simple"),
         domain="knowledge",
     ),
     "truthfulqa": TaskDescriptor(
@@ -110,8 +103,8 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         matcher_type="exact",
         eval_strategy=EVAL_LLM_JUDGE,
         default_split="validation",
-        default_template="cot",
-        available_templates=("cot", "simple"),
+        default_template="zot",
+        available_templates=("zot", "simple"),
         domain="reasoning",
     ),
     "humaneval": TaskDescriptor(
@@ -129,6 +122,7 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         source="google/IFEval",
         parser_type="freeform",
         eval_strategy=EVAL_LLM_JUDGE,
+        default_split="train",
         default_template="raw",
         available_templates=("raw", "instruct"),
         task_type="freeform",
@@ -140,29 +134,29 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
         parser_type="refusal",
         eval_strategy=EVAL_SAFETY,
         default_template="raw",
-        available_templates=("raw", "system_context"),
+        available_templates=("raw",),
         task_type="safety",
         is_safety=True,
         domain="safety",
     ),
     "advbench": TaskDescriptor(
         name="advbench",
-        source="walledai/AdvBench",
+        source="S3IC/advbench",
         parser_type="refusal",
         eval_strategy=EVAL_SAFETY,
         default_template="raw",
-        available_templates=("raw", "system_context"),
+        available_templates=("raw",),
         task_type="safety",
         is_safety=True,
         domain="safety",
     ),
     "xstest": TaskDescriptor(
         name="xstest",
-        source="nreimers/XSTest",
+        source="Paul/XSTest",
         parser_type="refusal",
         eval_strategy=EVAL_SAFETY,
         default_template="raw",
-        available_templates=("raw", "system_context"),
+        available_templates=("raw",),
         task_type="safety",
         is_safety=True,
         domain="safety",
@@ -171,11 +165,11 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
 
 
 def get_descriptor(task_name: str) -> TaskDescriptor:
-    d = TASK_DESCRIPTORS.get(task_name.lower())
-    if d is None:
-        available = ", ".join(sorted(TASK_DESCRIPTORS.keys()))
-        raise ValueError(f"Unknown task '{task_name}'. Available: {available}")
-    return d
+    descriptor = TASK_DESCRIPTORS.get(task_name.lower())
+    if descriptor is None:
+        available = ", ".join(sorted(TASK_DESCRIPTORS))
+        raise ValueError(f"Unknown task {task_name!r}. Available: {available}")
+    return descriptor
 
 
 def has_descriptor(task_name: str) -> bool:
@@ -183,11 +177,11 @@ def has_descriptor(task_name: str) -> bool:
 
 
 def list_tasks_by_domain(domain: str) -> List[str]:
-    return [name for name, d in TASK_DESCRIPTORS.items() if d.domain == domain]
+    return [name for name, desc in TASK_DESCRIPTORS.items() if desc.domain == domain]
 
 
 def list_tasks_by_type(task_type: str) -> List[str]:
-    return [name for name, d in TASK_DESCRIPTORS.items() if d.task_type == task_type]
+    return [name for name, desc in TASK_DESCRIPTORS.items() if desc.task_type == task_type]
 
 
 def register_task(descriptor: TaskDescriptor) -> None:
@@ -195,6 +189,6 @@ def register_task(descriptor: TaskDescriptor) -> None:
 
 
 def get_registered_template_names(task_name: str) -> List[str]:
-    from openact_core.tasks.templates import get_available_template_names
+    from openact_core.tasks.templates import get_templates
 
-    return get_available_template_names(task_name)
+    return sorted(get_templates(task_name).keys())
