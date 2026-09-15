@@ -15,6 +15,8 @@ class TaskRegistry:
         return decorator
     @classmethod
     def _validate_descriptor(cls, name: str, task_cls: Type) -> None:
+        if name == 'prepared':
+            return  # Carries the source task's descriptor in its prepared manifest.
         try:
             from openact_core.tasks.descriptor import has_descriptor, get_descriptor
             if not has_descriptor(name):

@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from openact_collect.extractors.hidden_state_data import HiddenStateData
 from openact_collect.schema import CaptureSpec
+if TYPE_CHECKING:
+    from openact_collect.engine.model_manager import GenerationResult
 class Extractor(ABC):
     def __init__(self, capture_spec: CaptureSpec):
         self.capture_spec = capture_spec

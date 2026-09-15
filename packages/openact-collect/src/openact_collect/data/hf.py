@@ -9,7 +9,11 @@ Why this exists:
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+from pathlib import Path
 from typing import Any, Optional
+
+DATASET_REVISIONS = json.loads(Path(__file__).with_name('dataset_versions.json').read_text())
 
 
 @dataclass(frozen=True)
@@ -39,8 +43,9 @@ def load_hf_dataset(spec: HFDatasetSpec) -> Any:
         "split": spec.split,
         "streaming": spec.streaming,
     }
-    if spec.revision is not None:
-        kwargs["revision"] = spec.revision
+    revision = spec.revision or DATASET_REVISIONS.get(spec.name)
+    if revision is not None:
+        kwargs["revision"] = revision
     if spec.cache_dir is not None:
         kwargs["cache_dir"] = spec.cache_dir
 

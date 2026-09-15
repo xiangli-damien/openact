@@ -1,12 +1,12 @@
 from typing import Iterator, List, Optional
 
-from openact_collect.data import HFDatasetSpec, load_hf_dataset
+from openact_collect.data import HFDatasetSpec
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
 @TaskRegistry.register("truthfulqa")
 class TruthfulQATask(Task):
     task_name = "truthfulqa"
-    source = "truthful_qa"
+    source = "truthfulqa/truthful_qa"
     split = "validation"
     language = "en"
     default_template = "zot"
@@ -25,8 +25,8 @@ class TruthfulQATask(Task):
         self._dataset = None
     def _load_dataset(self):
         if self._dataset is None:
-            self._dataset = load_hf_dataset(
-                HFDatasetSpec(name="truthful_qa", config="generation", split=self.split)
+            self._dataset = self.load_hf_dataset(
+                HFDatasetSpec(name="truthfulqa/truthful_qa", config="generation", split=self.split)
             )
 
     def estimate_size(self) -> Optional[int]:

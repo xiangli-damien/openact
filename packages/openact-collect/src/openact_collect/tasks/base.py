@@ -90,6 +90,21 @@ class Task(ABC):
         self.split = split
         self._template_variant = template or self.default_template
         self._config = kwargs
+        self.dataset_revision = kwargs.get('dataset_revision')
+        self.dataset_sources: List[Dict[str, Any]] = []
+        if max_samples is not None and max_samples < 1:
+            raise ValueError('max_samples must be positive')
+
+    def load_hf_dataset(self, spec):
+        from dataclasses import asdict, replace
+        from openact_collect.data.hf import DATASET_REVISIONS, load_hf_dataset
+        spec = replace(spec, revision=self.dataset_revision or spec.revision or DATASET_REVISIONS.get(spec.name))
+        dataset = load_hf_dataset(spec)
+        source = asdict(spec)
+        source['fingerprint'] = getattr(dataset, '_fingerprint', None)
+        if source not in self.dataset_sources:
+            self.dataset_sources.append(source)
+        return dataset
 
     @abstractmethod
     def iter_items(self) -> Iterator[TaskItem]:
@@ -145,7 +160,7 @@ class Task(ABC):
         if item.prompt_text is not None:
             return str(item.prompt_text)
         template = self.get_prompt_template_for_item(item)
-        return template.format_safe(**(item.prompt_fields or {}))
+        return template.format(**(item.prompt_fields or {}))
 
     @property
     def name(self) -> str:
@@ -193,5 +208,5 @@ class GenericTask(Task):
             yield TaskItem(sample_idx=output_idx, sample_id=sample_id, prompt_text=None, prompt_fields={'prompt': prompt}, ground_truth=answer, meta=meta)
             output_idx += 1
 
-    def get_prompt_template(self) -> PromptTemplate:
+    def get_prompt_template_for_item(self, item: Optional[TaskItem] = None) -> PromptTemplate:
         return PromptTemplate(name=self._template_name, template=self._template_text, variables=('prompt',))

@@ -27,13 +27,14 @@ classifiers = [
 dependencies = [
     "openact-core>=0.1.0",
     "accelerate>=0.25.0",
-    "torch>=2.0.0",
-    "transformers>=4.30.0",
-    "datasets>=2.14.0",
+    "torch>=2.2.0,<3",
+    "transformers>=4.57.0,<6",
+    "datasets>=3.0.0,<6",
+    "tomli>=2.0; python_version < '3.11'",
     "tqdm>=4.60.0",
     "numpy>=1.21.0",
     "pandas>=1.4.0",
-    "pyarrow>=10.0.0",
+    "pyarrow>=14.0.0",
     "zarr>=2.14.0,<3",
     "numcodecs>=0.11.0,<0.14",
 ]
@@ -80,6 +81,8 @@ target-version = ["py39", "py310", "py311"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
 ignore = ["E501"]
 

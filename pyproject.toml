@@ -25,9 +25,9 @@ classifiers = [
 ]
 
 dependencies = [
-    "openact-core @ file:./packages/openact-core",
-    "openact-collect @ file:./packages/openact-collect",
-    "openact-eval @ file:./packages/openact-eval",
+    "openact-core>=0.1.0",
+    "openact-collect>=0.1.0",
+    "openact-eval>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -43,6 +43,14 @@ dev = [
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+openact-core = { workspace = true }
+openact-collect = { workspace = true }
+openact-eval = { workspace = true }
+
 [tool.hatch.build]
 packages = ["src/openact"]
 
@@ -52,6 +60,8 @@ target-version = ["py39", "py310", "py311"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
 ignore = ["E501"]
 

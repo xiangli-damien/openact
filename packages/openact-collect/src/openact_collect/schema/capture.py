@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional
 @dataclass
 class CaptureSpec:
     hidden_states: bool = True
+    # Capture the input and output of the model's final normalization module.
+    final_norm: bool = True
     hidden_states_layers: Optional[List[int]] = None
     hidden_states_dtype: str = "float16"
     save_per_token: bool = True
@@ -24,6 +26,17 @@ class CaptureSpec:
     mlp_save_output: bool = True
     custom_selectors: List[str] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        for selection in (self.hidden_states_layers, self.attention_layers, self.mlp_layers):
+            if selection is not None and (not selection or any(type(index) is not int for index in selection)):
+                raise ValueError('Layer selections must be nonempty lists of integers')
+        if self.hidden_states_dtype not in ('float16', 'float32'):
+            raise ValueError('hidden_states_dtype must be float16 or float32')
+        if self.attention_pattern_window < 1:
+            raise ValueError('attention_pattern_window must be positive')
+        if self.mlp_save_gate or self.custom_selectors:
+            raise ValueError('MLP gate capture and custom selectors are not implemented')
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -42,10 +55,15 @@ class CaptureSpec:
 
     @staticmethod
     def _resolve_indices(raw: Optional[List[int]], n_layers: int) -> List[int]:
-        requested = raw or list(range(n_layers))
+        requested = list(range(n_layers)) if raw is None else raw
+        if not requested:
+            raise ValueError('Layer selection must not be empty')
         resolved: List[int] = []
         for idx in requested:
             actual = n_layers + idx if idx < 0 else idx
-            if 0 <= actual < n_layers:
-                resolved.append(actual)
+            if not 0 <= actual < n_layers:
+                raise ValueError(f'Layer {idx} is outside the available {n_layers} layers')
+            if actual in resolved:
+                raise ValueError(f'Duplicate layer selection: {idx}')
+            resolved.append(actual)
         return resolved

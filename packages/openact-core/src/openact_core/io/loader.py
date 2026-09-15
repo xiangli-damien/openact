@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
+if TYPE_CHECKING:
+    from openact_core.io.run import Run
 
 
 def _cast_label_array(raw: np.ndarray) -> np.ndarray:

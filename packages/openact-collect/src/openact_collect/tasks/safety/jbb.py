@@ -19,7 +19,7 @@ class JBBTask(SafetyTask):
         template: Optional[str] = None,
         profiles: Optional[Dict[str, GenerationProfile]] = None,
         include_goal: bool = True,
-        include_artifacts: bool = True,
+        include_artifacts: bool = False,
         artifact_loader: Optional[ArtifactLoader] = None,
         artifact_methods: Optional[List[str]] = None,
         **kwargs,
@@ -37,15 +37,12 @@ class JBBTask(SafetyTask):
             **kwargs,
         )
     def load_behaviors(self) -> List[Dict[str, Any]]:
-        from openact_collect.data import HFDatasetSpec, load_hf_dataset
+        from openact_collect.data import HFDatasetSpec
         behaviors: List[Dict[str, Any]] = []
         for split_name in self._active_splits:
-            try:
-                ds_split = load_hf_dataset(
-                    HFDatasetSpec(name="JailbreakBench/JBB-Behaviors", config="behaviors", split=split_name)
-                )
-            except Exception:
-                continue
+            ds_split = self.load_hf_dataset(
+                HFDatasetSpec(name="JailbreakBench/JBB-Behaviors", config="behaviors", split=split_name)
+            )
             for item in ds_split:
                 behavior_id = (
                     item.get("BehaviorID")

@@ -1,12 +1,12 @@
 from typing import Iterator, Optional
 
-from openact_collect.data import HFDatasetSpec, load_hf_dataset
+from openact_collect.data import HFDatasetSpec
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
 @TaskRegistry.register("commonsenseqa")
 class CommonsenseQATask(Task):
     task_name = "commonsenseqa"
-    source = "commonsense_qa"
+    source = "tau/commonsense_qa"
     split = "validation"
     language = "en"
     default_template = "zot"
@@ -21,7 +21,7 @@ class CommonsenseQATask(Task):
         self._dataset = None
     def _load_dataset(self):
         if self._dataset is None:
-            self._dataset = load_hf_dataset(HFDatasetSpec(name="commonsense_qa", split=self.split))
+            self._dataset = self.load_hf_dataset(HFDatasetSpec(name="tau/commonsense_qa", split=self.split))
 
     def estimate_size(self) -> Optional[int]:
         self._load_dataset()

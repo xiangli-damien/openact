@@ -37,6 +37,8 @@ class ZarrWriter:
         self._initialized = True
 
     def _initialize_zarr(self) -> None:
+        if self.zarr_path.exists():
+            raise FileExistsError(f'Refusing to overwrite existing tensors: {self.zarr_path}')
         self.zarr_path.mkdir(parents=True, exist_ok=True)
         compressor = Blosc(cname=self.storage_spec.compression, clevel=self.storage_spec.compression_level)
         self._root = zarr.open_group(str(self.zarr_path), mode='w')
@@ -44,7 +46,7 @@ class ZarrWriter:
         n_layers = int(self.manifest.model.n_layers or 0)
         n_decoder_layers = int(getattr(self.manifest.model, 'n_decoder_layers', 0) or max(0, n_layers - 1))
         hidden_dim = int(self.manifest.model.hidden_dim or 0)
-        layers = self.capture_spec.get_effective_layers(n_layers)
+        layers = self.capture_spec.get_effective_layers(n_layers) if self.capture_spec.hidden_states else []
         effective_layers = len(layers)
         self._allocated_samples = n_samples
         chunk_t = max(1, int(self.storage_spec.chunk_tokens))
@@ -60,6 +62,8 @@ class ZarrWriter:
             hidden_states = self._root.require_group('hidden_states')
             hidden_states.attrs['layers'] = layers
             hidden_states.attrs['dtype'] = self.capture_spec.hidden_states_dtype
+            hidden_states.attrs['token_alignment'] = 'response_token'
+            hidden_states.attrs['layer_semantics'] = 'HuggingFace hidden_states indices; last entry is final norm output'
             hs_dtype = self.capture_spec.hidden_states_dtype
             if self.capture_spec.save_per_token:
                 self._arrays['hs_per_token'] = hidden_states.require_dataset('per_token', shape=(0, effective_layers, hidden_dim), chunks=(chunk_t, chunk_l, chunk_h), dtype=hs_dtype, compressor=compressor)
@@ -67,6 +71,20 @@ class ZarrWriter:
                 self._arrays['hs_mean'] = hidden_states.require_dataset('mean', shape=(n_samples, effective_layers, hidden_dim), chunks=(min(64, max(1, n_samples)), max(1, effective_layers), max(1, hidden_dim)), dtype='float32', compressor=compressor)
             if self.capture_spec.save_prompt_last:
                 self._arrays['hs_prompt_last'] = hidden_states.require_dataset('prompt_last', shape=(n_samples, effective_layers, hidden_dim), chunks=(min(64, max(1, n_samples)), max(1, effective_layers), max(1, hidden_dim)), dtype='float32', compressor=compressor)
+            if self.capture_spec.final_norm:
+                norm = self._root.require_group('final_norm')
+                norm.attrs['token_alignment'] = 'response_token'
+                norm.attrs['semantics'] = 'input and output of the final normalization module'
+                for side in ('pre', 'post'):
+                    group = norm.require_group(side)
+                    if self.capture_spec.save_per_token:
+                        self._arrays[f'final_norm_{side}'] = group.create_dataset('per_token', shape=(0, hidden_dim), chunks=(chunk_t, chunk_h), dtype=hs_dtype, compressor=compressor)
+                    for enabled, suffix, name in (
+                        (self.capture_spec.save_mean_states, 'mean', 'mean'),
+                        (self.capture_spec.save_prompt_last, 'prompt_last', 'prompt_last'),
+                    ):
+                        if enabled:
+                            self._arrays[f'final_norm_{side}_{suffix}'] = group.create_dataset(name, shape=(n_samples, hidden_dim), chunks=(min(64, max(1, n_samples)), hidden_dim), dtype='float32', compressor=compressor)
         if self.capture_spec.attention and (self.capture_spec.attention_save_outputs or self.capture_spec.attention_save_patterns):
             attention = self._root.require_group('attention')
             attention_layers = self.capture_spec.get_effective_attention_layers(n_decoder_layers)
@@ -103,6 +121,20 @@ class ZarrWriter:
             self.start()
         self._ensure_sample_capacity(sample_idx)
         n_tokens = int(len(token_ids))
+        if token_offsets.shape != (n_tokens, 2):
+            raise ValueError('Token offsets must have one (start, end) pair per token')
+        if hidden_state_data is not None:
+            for key, field in (
+                ('hs_per_token', 'per_token_states'), ('attn_output', 'attention_outputs'),
+                ('attn_pattern', 'attention_patterns'), ('mlp_output', 'mlp_outputs'),
+                ('final_norm_pre', 'final_norm_pre'), ('final_norm_post', 'final_norm_post'),
+            ):
+                array = self._arrays.get(key)
+                if array is not None:
+                    value = getattr(hidden_state_data, field, None)
+                    expected = (n_tokens, *array.shape[1:])
+                    if value is None or value.shape != expected:
+                        raise ValueError(f'{field} must have shape {expected}; got {getattr(value, "shape", None)}')
         ptr_start = self._current_token_ptr
         ptr_end = ptr_start + n_tokens
         if n_tokens:
@@ -145,6 +177,16 @@ class ZarrWriter:
         self._arrays['sample_status'][sample_idx] = int(status)
         if hidden_state_data is None:
             return
+        for side in ('pre', 'post'):
+            key = f'final_norm_{side}'
+            if key in self._arrays:
+                array = self._arrays[key]
+                array.resize((ptr_end, array.shape[1]))
+                array[ptr_start:ptr_end] = getattr(hidden_state_data, key)
+            for suffix in ('mean', 'prompt_last'):
+                key = f'final_norm_{side}_{suffix}'
+                if key in self._arrays:
+                    self._arrays[key][sample_idx] = getattr(hidden_state_data, key)
         if hidden_state_data.mean_states is not None and 'hs_mean' in self._arrays:
             self._arrays['hs_mean'][sample_idx] = hidden_state_data.mean_states
         if hidden_state_data.prompt_last_states is not None and 'hs_prompt_last' in self._arrays:

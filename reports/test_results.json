@@ -1,0 +1,868 @@
+{
+  "summary": {
+    "passed": 197,
+    "skipped": 12,
+    "total": 209,
+    "collected": 209
+  },
+  "duration_seconds": 30.210267066955566,
+  "versions": {
+    "torch": "2.14.0",
+    "transformers": "5.17.0",
+    "datasets": "5.0.1",
+    "numpy": "2.4.6",
+    "pandas": "3.0.5",
+    "pyarrow": "25.0.1",
+    "zarr": "2.18.7",
+    "numcodecs": "0.13.1"
+  },
+  "python": "3.11.16",
+  "compatibility_run": {
+    "transformers": "4.57.6",
+    "result": "183 passed, 12 skipped in 24.78s",
+    "scope": "Earlier full suite before paper-specific additions"
+  },
+  "tests": [
+    {
+      "name": "tests/test_01_mono_datasets.py::test_dataset_download_and_fields[gsm8k]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_01_mono_datasets.py::test_dataset_download_and_fields[mmlu]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_01_mono_datasets.py::test_dataset_download_and_fields[math]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_01_mono_datasets.py::test_dataset_download_and_fields[theoremqa]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_01_mono_datasets.py::test_dataset_download_and_fields[arc_challenge]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_01_mono_datasets.py::test_dataset_download_and_fields[commonsenseqa]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_01_mono_datasets.py::test_dataset_download_and_fields[truthfulqa]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_01_mono_datasets.py::test_dataset_download_and_fields[humaneval]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_01_mono_datasets.py::test_dataset_download_and_fields[ifeval]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_01_mono_datasets.py::test_task_registry_completeness",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[bn]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[de]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[en]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[es]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[fr]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[ja]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[ru]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[sw]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[te]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[th]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_02_mgsm_multilingual.py::test_mgsm_language[zh]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[en]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[zh]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[ja]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[de]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[fr]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[es]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[ru]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[ar]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[hi]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[ko]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[pt]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[it]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[th]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[vi]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[bn]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[sw]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[te]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_03_belebele_multilingual.py::test_belebele_language[tr]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mono[gsm8k]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mono[mmlu]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mono[math]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mono[theoremqa]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mono[arc_challenge]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mono[commonsenseqa]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mono[truthfulqa]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mono[humaneval]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mono[ifeval]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[bn]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[de]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[en]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[es]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[fr]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[ja]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[ru]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[sw]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[te]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[th]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_mgsm[zh]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[en]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[zh]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[ja]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[de]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[fr]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[es]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[ru]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[ar]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[hi]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[ko]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[pt]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[it]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[th]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[vi]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[bn]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[sw]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[te]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_belebele[tr]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_safety[jbb]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_safety[advbench]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_04_prompt_rendering.py::test_prompt_safety[xstest]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[gsm8k_0]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[gsm8k_1]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[gsm8k_2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[gsm8k_3]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[gsm8k_4]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[mgsm_5]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[mgsm_6]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[mgsm_7]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[mmlu_8]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[mmlu_9]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[mmlu_10]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[mmlu_11]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[belebele_12]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[belebele_13]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[arc_challenge_14]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[arc_challenge_15]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[commonsenseqa_16]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[math_17]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[math_18]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[math_19]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[math_20]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[math_21]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[theoremqa_22]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[theoremqa_23]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[humaneval_24]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[jbb_25]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[jbb_26]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[advbench_27]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[advbench_28]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[xstest_29]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_parser[xstest_30]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_numeric_parser_edge_cases",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_math_parser_nested_boxed",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_mc_parser_tricky_formats",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_05_parsers.py::test_all_parsers_registered",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_06_safety.py::test_safety_dataset[jbb]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_06_safety.py::test_safety_dataset[advbench]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_06_safety.py::test_safety_dataset[xstest]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_06_safety.py::test_safety_spec[jbb]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_06_safety.py::test_safety_spec[advbench]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_06_safety.py::test_safety_spec[xstest]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mono[gsm8k]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mono[mmlu]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mono[math]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mono[theoremqa]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mono[arc_challenge]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mono[commonsenseqa]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mono[belebele]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mgsm[en]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mgsm[zh]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mgsm[ja]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mgsm[de]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_mgsm[fr]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_belebele[en]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_belebele[zh]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_belebele[ja]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_belebele[ar]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_07_end_to_end_sim.py::test_e2e_belebele[ko]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_structure",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_sample_content",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_per_token_hidden_states",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_mean_hidden_states",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_prompt_last",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_token_alignment",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_token_hs_correspondence",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_bulk_loading",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_layer_selection",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_dataloader",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_labels",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_08_smoke_run.py::test_validation",
+      "outcome": "skipped"
+    },
+    {
+      "name": "tests/test_09_descriptors.py::test_every_task_has_descriptor",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_09_descriptors.py::test_every_parser_task_has_parser",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_09_descriptors.py::test_every_task_has_templates",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_09_descriptors.py::test_eval_config_exists_for_key_tasks",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_teacher_forced_states_match_reference[1-llama]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_teacher_forced_states_match_reference[1-qwen2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_teacher_forced_states_match_reference[1-gpt2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_teacher_forced_states_match_reference[4-llama]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_teacher_forced_states_match_reference[4-qwen2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_teacher_forced_states_match_reference[4-gpt2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_bfloat16_and_optional_traces[llama]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_bfloat16_and_optional_traces[qwen2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_model_loading_and_probe",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_collection_roundtrip_and_refuse_overwrite",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_paper_all_layers_match_independent_causal_prefixes[eager-llama2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_paper_all_layers_match_independent_causal_prefixes[eager-llama3]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_paper_all_layers_match_independent_causal_prefixes[eager-llama32]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_paper_all_layers_match_independent_causal_prefixes[eager-qwen2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_paper_all_layers_match_independent_causal_prefixes[sdpa-llama2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_paper_all_layers_match_independent_causal_prefixes[sdpa-llama3]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_paper_all_layers_match_independent_causal_prefixes[sdpa-llama32]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_paper_all_layers_match_independent_causal_prefixes[sdpa-qwen2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_non_eos_special_tokens_are_not_terminators",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_default_generation_and_extractor_settings_agree",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_eos_is_kept_and_has_its_own_state",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_no_hidden_states_still_aligns_traces",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_pattern_capture_rejects_sdpa",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_invalid_layers_fail[layers0]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_invalid_layers_fail[layers1]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_invalid_layers_fail[layers2]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_10_runtime.py::test_invalid_layers_fail[layers3]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_research_config",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_capability_config_uses_full_dataset",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_theoremqa_retains_image_questions_with_explicit_policy",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_cli_config_and_overrides",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_invalid_config_fails[[capture]\\nfinal_nrom=true]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_invalid_config_fails[[model]\\nbackend=\"vllm\"]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_invalid_config_fails[[generation]\\nmax_new_tokens=0]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_invalid_config_fails[[capture]\\nhidden_states_dtype=\"bfloat16\"]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_invalid_config_fails[[analysis]\\nexecution=\"internal\"]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_invalid_config_fails[[collection]\\nmax_samples=0]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_invalid_config_fails[[capture]\\nhidden_states_layers=[]]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_safety_cli_constructs_without_duplicate_arguments[advbench]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_safety_cli_constructs_without_duplicate_arguments[xstest]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_safety_cli_constructs_without_duplicate_arguments[jbb]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_safety_zot_is_applied_and_unknown_template_fails[jbb]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_safety_zot_is_applied_and_unknown_template_fails[advbench]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_safety_zot_is_applied_and_unknown_template_fails[xstest]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_prepared_prompts_ignore_collection_template_override",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_arc_numeric_choices_use_letter_labels",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_math_uses_last_boxed_answer",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_missing_prompt_fields_fail",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_guard_uses_selected_tokenizer_and_strict_labels",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_offset_fallback_repeated_text_and_partial_bytes",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_sentencepiece_byte_run_can_temporarily_backtrack",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_prepared_skips_null_prompts",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_failed_run_has_no_success_marker",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_mean_only_capture_and_corruption_detection",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_11_config_and_integrity.py::test_evaluation_pipeline_persists_and_refreshes_labels",
+      "outcome": "passed"
+    }
+  ],
+  "paper_compatibility_run": {
+    "transformers": "4.57.6",
+    "scope": "tests/test_10_runtime.py and tests/test_11_config_and_integrity.py",
+    "result": "53 passed in 5.44s"
+  }
+}

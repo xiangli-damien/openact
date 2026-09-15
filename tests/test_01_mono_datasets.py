@@ -8,7 +8,7 @@ Run:
     python -m pytest tests/test_01_mono_datasets.py -v -s -k gsm8k   # single task
 """
 import pytest
-from conftest import MONO_TASKS
+from tests.conftest import MONO_TASKS
 
 
 def _trunc(text, n=200):

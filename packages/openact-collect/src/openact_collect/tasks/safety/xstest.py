@@ -2,10 +2,6 @@ from typing import Any, Dict, List, Optional
 from openact_collect.schema import GenerationProfile
 from openact_collect.tasks.registry import TaskRegistry
 from openact_collect.tasks.safety.base import SafetyTask
-_HF_SOURCES = [
-    ("Paul/XSTest", None, "train"),
-    ("AlignmentResearch/XSTest", None, "validation"),
-]
 @TaskRegistry.register("xstest")
 class XSTestTask(SafetyTask):
     task_name = "xstest"
@@ -31,21 +27,9 @@ class XSTestTask(SafetyTask):
             **kwargs,
         )
     def load_behaviors(self) -> List[Dict[str, Any]]:
-        from openact_collect.data import HFDatasetSpec, load_hf_dataset
+        from openact_collect.data import HFDatasetSpec
         import warnings
-        dataset = None
-        for hf_id, cfg, split_name in _HF_SOURCES:
-            try:
-                dataset = load_hf_dataset(HFDatasetSpec(name=hf_id, config=cfg, split=split_name))
-                self.source = hf_id
-                break
-            except Exception:
-                continue
-        if dataset is None:
-            raise RuntimeError(
-                "Could not load XSTest from any known HuggingFace source. "
-                f"Tried: {[s[0] for s in _HF_SOURCES]}"
-            )
+        dataset = self.load_hf_dataset(HFDatasetSpec(name=self.source, split='train'))
         behaviors: List[Dict[str, Any]] = []
         for i, item in enumerate(dataset):
             prompt = (
@@ -63,23 +47,14 @@ class XSTestTask(SafetyTask):
             if not str(prompt).strip():
                 continue
             prompt = str(prompt).strip()
-            label = (
-                item.get("label")
-                or item.get("gen_target")
-                or item.get("proxy_gen_target")
-                or item.get("safe", "")
-            )
+            label = item.get('label')
             label_str = str(label).lower().strip()
-            if label_str in ("safe", "1", "true", "benign"):
-                b_split = "benign"
-            elif label_str in ("unsafe", "0", "false", "harmful"):
-                b_split = "harmful"
+            if label_str in ('safe', '1', 'true', 'benign'):
+                b_split = 'benign'
+            elif label_str in ('unsafe', '0', 'false', 'harmful'):
+                b_split = 'harmful'
             else:
-                xstest_type = item.get("type", "").lower()
-                if "safe" in xstest_type or "contrast" in xstest_type:
-                    b_split = "benign"
-                else:
-                    b_split = "harmful"
+                raise ValueError(f'Unrecognized XSTest safety label: {label!r}')
             category = item.get("type", item.get("category", ""))
             note = item.get("note", item.get("focus", ""))
             behaviors.append(

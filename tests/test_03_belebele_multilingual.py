@@ -8,7 +8,7 @@ Run:
     python -m pytest tests/test_03_belebele_multilingual.py -v -s -k zh
 """
 import pytest
-from conftest import BELEBELE_LANGS
+from tests.conftest import BELEBELE_LANGS
 
 
 # Internal lang code map from the task source

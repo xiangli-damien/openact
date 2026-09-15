@@ -1,6 +1,6 @@
 from typing import Iterator, Optional
 
-from openact_collect.data import HFDatasetSpec, load_hf_dataset
+from openact_collect.data import HFDatasetSpec
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
 @TaskRegistry.register("arc_challenge")
@@ -21,7 +21,7 @@ class ARCChallengeTask(Task):
         self._dataset = None
     def _load_dataset(self):
         if self._dataset is None:
-            self._dataset = load_hf_dataset(
+            self._dataset = self.load_hf_dataset(
                 HFDatasetSpec(name="allenai/ai2_arc", config="ARC-Challenge", split=self.split)
             )
 
@@ -38,13 +38,14 @@ class ARCChallengeTask(Task):
             if self.max_samples and idx >= self.max_samples:
                 break
             question = item["question"]
-            labels = item["choices"]["label"]
+            original_labels = item["choices"]["label"]
+            labels = list('ABCDE'[:len(original_labels)])
             texts = item["choices"]["text"]
             choices_text = "\n".join(
                 f"{label}. {text}" for label, text in zip(labels, texts)
             )
             choice_labels = "".join(labels)
-            answer_key = item["answerKey"]
+            answer_key = labels[original_labels.index(item["answerKey"])]
             yield TaskItem(
                 sample_idx=idx,
                 sample_id=f"arc_challenge_{idx}",
@@ -58,6 +59,8 @@ class ARCChallengeTask(Task):
                     "question": question,
                     "choices": dict(zip(labels, texts)),
                     "answer_key": answer_key,
+                    "original_answer_key": item["answerKey"],
+                    "original_choice_labels": original_labels,
                     "item_id": item.get("id", str(idx)),
                 },
             )

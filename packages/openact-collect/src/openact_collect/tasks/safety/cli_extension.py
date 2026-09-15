@@ -34,7 +34,7 @@ def add_safety_arguments(parser: argparse.ArgumentParser) -> None:
     safety_group.add_argument(
         "--safety-split",
         type=str,
-        default="all",
+        default=None,
         choices=["all", "harmful", "benign"],
         help="Which safety split to collect (default: all).",
     )
@@ -44,8 +44,10 @@ def resolve_safety_task_kwargs(args: argparse.Namespace) -> Dict:
         kwargs["profiles"] = build_profiles_from_cli(args.profiles)
     else:
         kwargs["profiles"] = dict(DEFAULT_SAFETY_PROFILES)
-    kwargs["include_artifacts"] = not getattr(args, "no_artifacts", False)
-    if getattr(args, "artifact_dir", None):
+    is_jbb = str(getattr(args, 'task', '')).lower() == 'jbb'
+    if is_jbb:
+        kwargs['include_artifacts'] = bool(getattr(args, 'artifact_dir', None)) and not getattr(args, 'no_artifacts', False)
+    if is_jbb and getattr(args, "artifact_dir", None):
         from openact_collect.tasks.safety.artifacts import (
             DirectoryArtifactLoader,
         )
@@ -55,10 +57,12 @@ def resolve_safety_task_kwargs(args: argparse.Namespace) -> Dict:
         kwargs["artifact_loader"] = DirectoryArtifactLoader(
             artifacts_dir=args.artifact_dir, methods=methods
         )
-    elif getattr(args, "artifact_methods", None):
+    elif is_jbb and getattr(args, "artifact_methods", None):
         methods = [m.strip() for m in args.artifact_methods.split(",")]
         kwargs["artifact_methods"] = methods
-    kwargs["split"] = getattr(args, "safety_split", "all")
+    split = getattr(args, 'safety_split', None) or getattr(args, 'split', None)
+    if split:
+        kwargs['split'] = split
     return kwargs
 _SAFETY_TASK_NAMES = {"jbb", "advbench", "xstest"}
 def is_safety_task(task_name: str) -> bool:

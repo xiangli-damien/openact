@@ -1,6 +1,6 @@
 from typing import Iterator, Optional
 
-from openact_collect.data import HFDatasetSpec, load_hf_dataset
+from openact_collect.data import HFDatasetSpec
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
 @TaskRegistry.register("gsm8k")
@@ -23,7 +23,7 @@ class GSM8KTask(Task):
         self._dataset = None
     def _load_dataset(self):
         if self._dataset is None:
-            self._dataset = load_hf_dataset(
+            self._dataset = self.load_hf_dataset(
                 HFDatasetSpec(name="openai/gsm8k", config="main", split=self.split)
             )
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 import torch
 from openact_collect.schema import CaptureSpec
-from openact_collect.tracing.module_resolver import find_transformer_layers, resolve_attention_module, resolve_mlp_module
+from openact_collect.tracing.module_resolver import find_final_norm, find_transformer_layers, resolve_attention_module, resolve_mlp_module
 
 logger = logging.getLogger(__name__)
 
@@ -14,19 +14,22 @@ class ActivationTrace:
     attn_outputs: Optional[List[Dict[int, torch.Tensor]]] = None
     attn_patterns: Optional[List[Dict[int, torch.Tensor]]] = None
     mlp_outputs: Optional[List[Dict[int, torch.Tensor]]] = None
+    final_norm_pre: Optional[List[torch.Tensor]] = None
+    final_norm_post: Optional[List[torch.Tensor]] = None
 
     def n_steps(self) -> int:
-        for sequence in (self.attn_outputs, self.attn_patterns, self.mlp_outputs):
+        for sequence in (self.attn_outputs, self.attn_patterns, self.mlp_outputs, self.final_norm_pre):
             if sequence is not None:
                 return len(sequence)
         return 0
 
 
 class ActivationRecorder:
-    def __init__(self, model: Any, capture_spec: CaptureSpec, decoder_n_layers: Optional[int] = None):
+    def __init__(self, model: Any, capture_spec: CaptureSpec, decoder_n_layers: Optional[int] = None, token_positions: Optional[List[int]] = None):
         self.model = model
         self.capture_spec = capture_spec
         self.decoder_n_layers = decoder_n_layers
+        self.token_positions = token_positions
         self._hooks: List[Any] = []
         self._step_idx = -1
         self._layers: Optional[List[Any]] = None
@@ -35,20 +38,36 @@ class ActivationRecorder:
         self._want_attn_out = bool(capture_spec.attention and capture_spec.attention_save_outputs)
         self._want_attn_pat = bool(capture_spec.attention and capture_spec.attention_save_patterns)
         self._want_mlp_out = bool(capture_spec.mlp and capture_spec.mlp_save_output)
+        self._want_final_norm = bool(capture_spec.hidden_states and capture_spec.final_norm)
+        self._final_norm_pre = [] if self._want_final_norm else None
+        self._final_norm_post = [] if self._want_final_norm else None
         self._attn_window = int(getattr(capture_spec, 'attention_pattern_window', 256) or 256)
         self._attn_outputs_steps: Optional[List[Dict[int, torch.Tensor]]] = [] if self._want_attn_out else None
         self._attn_patterns_steps: Optional[List[Dict[int, torch.Tensor]]] = [] if self._want_attn_pat else None
         self._mlp_outputs_steps: Optional[List[Dict[int, torch.Tensor]]] = [] if self._want_mlp_out else None
 
     def __enter__(self) -> 'ActivationRecorder':
-        self.start()
+        try:
+            self.start()
+        except Exception:
+            self.stop()
+            raise
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         self.stop()
         return False
 
+    @property
+    def enabled(self) -> bool:
+        return self._want_attn_out or self._want_attn_pat or self._want_mlp_out or self._want_final_norm
+
     def start(self) -> None:
+        if not self.enabled:
+            return
+        if self._want_final_norm:
+            norm = find_final_norm(self.model)
+            self._hooks.append(norm.register_forward_hook(self._on_final_norm, with_kwargs=True))
         if not (self._want_attn_out or self._want_attn_pat or self._want_mlp_out):
             return
         self._layers = find_transformer_layers(self.model)
@@ -69,10 +88,14 @@ class ActivationRecorder:
                 attention_module = resolve_attention_module(layer)
                 if attention_module is not None:
                     self._hooks.append(attention_module.register_forward_hook(self._make_attn_hook(layer_idx)))
+                else:
+                    raise ValueError(f'Cannot locate attention module in layer {layer_idx}')
             if mlp_enabled:
                 mlp_module = resolve_mlp_module(layer)
                 if mlp_module is not None:
                     self._hooks.append(mlp_module.register_forward_hook(self._make_mlp_hook(layer_idx)))
+                else:
+                    raise ValueError(f'Cannot locate MLP module in layer {layer_idx}')
 
     def stop(self) -> None:
         for hook in self._hooks:
@@ -83,18 +106,27 @@ class ActivationRecorder:
         self._hooks.clear()
 
     def trace(self) -> Optional[ActivationTrace]:
-        if not (self._want_attn_out or self._want_attn_pat or self._want_mlp_out):
+        if not self.enabled:
             return None
-        return ActivationTrace(attn_outputs=self._attn_outputs_steps, attn_patterns=self._attn_patterns_steps, mlp_outputs=self._mlp_outputs_steps)
+        return ActivationTrace(attn_outputs=self._attn_outputs_steps, attn_patterns=self._attn_patterns_steps, mlp_outputs=self._mlp_outputs_steps, final_norm_pre=self._final_norm_pre, final_norm_post=self._final_norm_post)
+
+    def _on_final_norm(self, _module, inputs, kwargs, output) -> None:
+        before = inputs[0] if inputs else kwargs.get('hidden_states', kwargs.get('input'))
+        after = self._as_tensor(output)
+        if not isinstance(before, torch.Tensor) or after is None:
+            raise ValueError('Final norm hook did not receive input and output tensors')
+        positions = self.token_positions if self.token_positions is not None else [-1]
+        self._final_norm_pre.extend(before[0, positions].detach().to('cpu', dtype=torch.float32, copy=True).unbind(0))
+        self._final_norm_post.extend(after[0, positions].detach().to('cpu', dtype=torch.float32, copy=True).unbind(0))
 
     def _on_model_pre_forward(self, _module: Any, _inputs: Any) -> None:
         self._step_idx += 1
         if self._attn_outputs_steps is not None:
-            self._attn_outputs_steps.append({})
+            self._attn_outputs_steps.extend({} for _ in (self.token_positions or [-1]))
         if self._attn_patterns_steps is not None:
-            self._attn_patterns_steps.append({})
+            self._attn_patterns_steps.extend({} for _ in (self.token_positions or [-1]))
         if self._mlp_outputs_steps is not None:
-            self._mlp_outputs_steps.append({})
+            self._mlp_outputs_steps.extend({} for _ in (self.token_positions or [-1]))
 
     @staticmethod
     def _as_tensor(output: Any) -> Optional[torch.Tensor]:
@@ -137,26 +169,22 @@ class ActivationRecorder:
             if self._attn_outputs_steps is not None:
                 tensor = self._as_tensor(output)
                 if tensor is not None and tensor.ndim >= 3:
-                    self._attn_outputs_steps[step_idx][layer_idx] = tensor[0, -1].detach().to('cpu', dtype=torch.float16)
+                    positions = self.token_positions if self.token_positions is not None else [-1]
+                    vectors = tensor[0, positions].detach().to('cpu', dtype=torch.float16)
+                    for index, vector in enumerate(vectors):
+                        self._attn_outputs_steps[index if self.token_positions is not None else step_idx][layer_idx] = vector
             if self._attn_patterns_steps is None:
                 return
             weights = self._as_attn_weights(output)
             if weights is None:
-                return
-            if weights.ndim == 4:
-                weights_last = weights[0, :, -1, :]
-            elif weights.ndim == 3:
-                weights_last = weights[0, :, :]
-            else:
-                return
-            key_len = weights_last.shape[-1]
-            window = self._attn_window
-            if key_len >= window:
-                weights_window = weights_last[..., -window:]
-            else:
-                pad = window - key_len
+                raise ValueError('Attention weights unavailable; use an eager attention implementation')
+            positions = self.token_positions if self.token_positions is not None else [weights.shape[-2] - 1]
+            for index, position in enumerate(positions):
+                key_end = position + 1 if self.token_positions is not None else weights.shape[-1]
+                weights_last = weights[0, :, position, max(0, key_end - self._attn_window):key_end]
+                pad = self._attn_window - weights_last.shape[-1]
                 weights_window = torch.nn.functional.pad(weights_last, (pad, 0), value=0.0)
-            self._attn_patterns_steps[step_idx][layer_idx] = weights_window.detach().to('cpu', dtype=torch.float16)
+                self._attn_patterns_steps[index if self.token_positions is not None else step_idx][layer_idx] = weights_window.detach().to('cpu', dtype=torch.float16)
         return hook
 
     def _make_mlp_hook(self, layer_idx: int):
@@ -167,5 +195,8 @@ class ActivationRecorder:
             tensor = self._as_tensor(output)
             if tensor is None or tensor.ndim < 3:
                 return
-            self._mlp_outputs_steps[step_idx][layer_idx] = tensor[0, -1].detach().to('cpu', dtype=torch.float16)
+            positions = self.token_positions if self.token_positions is not None else [-1]
+            vectors = tensor[0, positions].detach().to('cpu', dtype=torch.float16)
+            for index, vector in enumerate(vectors):
+                self._mlp_outputs_steps[index if self.token_positions is not None else step_idx][layer_idx] = vector
         return hook

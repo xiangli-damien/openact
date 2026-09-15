@@ -2,7 +2,7 @@ variants:
   zot:
     template: |
       Question: {problem}
-      Please reason step by step, and put your final answer within \boxed{{{{}}}}.
+      Please reason step by step, and put your final answer within \boxed{{}}.
     answer_prefix: "\\boxed"
     description: "Zero-shot-of-thought expecting LaTeX boxed answer."
 

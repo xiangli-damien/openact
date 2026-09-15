@@ -1,6 +1,6 @@
 from typing import Iterator, Optional
 
-from openact_collect.data import HFDatasetSpec, load_hf_dataset
+from openact_collect.data import HFDatasetSpec
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
 @TaskRegistry.register("theoremqa")
@@ -23,22 +23,21 @@ class TheoremQATask(Task):
         self._dataset = None
     def _load_dataset(self):
         if self._dataset is None:
-            self._dataset = load_hf_dataset(
+            self._dataset = self.load_hf_dataset(
                 HFDatasetSpec(name="TIGER-Lab/TheoremQA", split=self.split)
             )
+            # Retain every row, including image questions. Current models consume
+            # the question text only; record image presence without decoding it.
+            from datasets import Image
+            if isinstance(self._dataset.features.get('Picture'), Image):
+                self._dataset = self._dataset.cast_column('Picture', Image(decode=False))
 
     def estimate_size(self) -> Optional[int]:
         self._load_dataset()
         if self._dataset is None:
             return None
-        n = 0
-        for item in self._dataset:
-            if item.get("Picture", None):
-                continue
-            n += 1
-            if self.max_samples and n >= self.max_samples:
-                return int(self.max_samples)
-        return n
+        n = len(self._dataset)
+        return min(n, self.max_samples) if self.max_samples is not None else n
     def iter_items(self) -> Iterator[TaskItem]:
         self._load_dataset()
         idx = 0
@@ -50,8 +49,7 @@ class TheoremQATask(Task):
             answer_type = item.get(
                 "Answer_type", item.get("answer_type", "float")
             )
-            if item.get("Picture", None):
-                continue
+            has_image = bool(item.get("Picture"))
             yield TaskItem(
                 sample_idx=idx,
                 sample_id=f"theoremqa_{idx}",
@@ -63,6 +61,8 @@ class TheoremQATask(Task):
                 meta={
                     "question": question,
                     "answer_type": answer_type,
+                    "has_image": has_image,
+                    "image_input_policy": "text_only_image_not_passed",
                 },
             )
             idx += 1

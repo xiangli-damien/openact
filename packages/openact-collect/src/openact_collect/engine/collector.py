@@ -46,7 +46,7 @@ class CollectResult:
 
 
 class CollectionRunner:
-    def __init__(self, model_manager: ModelRunner, task: Task, output_dir: Union[str, Path], capture_spec: Optional[CaptureSpec] = None, generation_spec: Optional[GenerationSpec] = None, storage_spec: Optional[StorageSpec] = None, queue_size: int = 8):
+    def __init__(self, model_manager: ModelRunner, task: Task, output_dir: Union[str, Path], capture_spec: Optional[CaptureSpec] = None, generation_spec: Optional[GenerationSpec] = None, storage_spec: Optional[StorageSpec] = None, queue_size: int = 8, run_config: Optional[Dict[str, Any]] = None):
         self.model_manager = model_manager
         self.task = task
         self.output_dir = Path(output_dir)
@@ -54,6 +54,7 @@ class CollectionRunner:
         self.generation_spec = generation_spec or GenerationSpec()
         self.storage_spec = storage_spec or StorageSpec()
         self.queue_size = queue_size
+        self.run_config = run_config or {}
         self._profiles = task.get_profiles()
         self.manifest: Optional[Manifest] = None
         self.writer: Optional[ZarrWriter] = None
@@ -77,10 +78,14 @@ class CollectionRunner:
         return len(plan), iter(plan)
 
     def run(self) -> Dict[str, Any]:
+        if any((self.output_dir / name).exists() for name in ('tensors.zarr', 'manifest.json', 'data.parquet', '_SUCCESS')):
+            raise FileExistsError(f'Run already exists: {self.output_dir}. Choose a fresh output directory; resume is not implemented.')
         self.output_dir.mkdir(parents=True, exist_ok=True)
         if not self.model_manager._loaded:
             self.model_manager.load()
         total, items_iter = self._resolve_plan()
+        if total < 1:
+            raise ValueError('The dataset produced no samples')
         self.manifest = self._create_manifest()
         self.manifest.dataset.n_samples = total
         self.offset_calculator = OffsetCalculator(self.model_manager.tokenizer, special_ids=self.model_manager.get_special_ids())
@@ -143,6 +148,8 @@ class CollectionRunner:
             self.manifest.stats.duration_seconds = stats['duration_seconds']
             self.manifest.save(self.output_dir / 'manifest.json')
         if not self._interrupted:
+            if stats['processed'] != total or stats['ok'] == 0:
+                raise RuntimeError(f'Incomplete collection: {stats["ok"]} successful, {stats["processed"]}/{total} processed')
             self._finalize(stats)
         return stats
 
@@ -157,6 +164,8 @@ class CollectionRunner:
             'sample_id': result.meta.get('sample_id', str(result.sample_idx)),
             'status': int(result.status),
             'prompt_text': result.meta.get('prompt_text'),
+            'model_input_text': result.meta.get('model_input_text'),
+            'prompt_token_ids_json': json.dumps(result.meta['prompt_token_ids']) if 'prompt_token_ids' in result.meta else None,
             'prompt_fields_json': json.dumps(item.prompt_fields, ensure_ascii=False) if getattr(item, 'prompt_fields', None) else None,
             'response_text': result.response_text,
             'ground_truth': item.ground_truth,
@@ -197,7 +206,7 @@ class CollectionRunner:
         import pyarrow.parquet as pq
         tables = [pq.read_table(path) for path in self._parquet_part_paths if path.exists()]
         if tables:
-            pq.write_table(pa.concat_tables(tables), self.output_dir / 'data.parquet')
+            pq.write_table(pa.concat_tables(tables, promote_options='default'), self.output_dir / 'data.parquet')
         for path in self._parquet_part_paths:
             try:
                 path.unlink(missing_ok=True)
@@ -206,6 +215,10 @@ class CollectionRunner:
 
     def _finalize(self, stats: Dict[str, Any]) -> None:
         logger.info('Finalizing run...')
+        from openact_core.cli.validate import validate_run
+        validation = validate_run(self.output_dir)
+        if not validation['is_valid']:
+            raise RuntimeError(f'Run validation failed: {validation["errors"]}')
         CompletionMarker.mark_complete(
             run_dir=self.output_dir,
             stats={
@@ -236,6 +249,7 @@ class CollectionRunner:
                 answer_prefix=prompt_template.answer_prefix,
                 template_variant=getattr(self.task, '_template_variant', None),
                 supports_multilingual=prompt_template.supports_multilingual,
+                chat_template_applied=bool(getattr(self.model_manager.tokenizer, 'chat_template', None)),
             ),
             generation_config=self.generation_spec.to_dict(),
             capture_config=self.capture_spec.to_dict(),
@@ -249,7 +263,19 @@ class CollectionRunner:
                 hostname=platform.node(),
                 command_line=' '.join(sys.argv),
             ),
-            custom={'safety': self.task.get_safety_spec().to_dict()} if self.task.get_safety_spec() is not None else {},
+            custom={
+                **({'safety': self.task.get_safety_spec().to_dict()} if self.task.get_safety_spec() is not None else {}),
+                'dataset_sources': self.task.dataset_sources,
+                'activation_extraction': 'teacher_forced_forward',
+                'token_alignment': 'response_token',
+                'prompt_last_position': 'final_model_input_token_including_chat_template',
+                'mean_token_policy': 'all_generated_tokens_including_eos_and_special_tokens',
+                'eos_token_ids': self.model_manager._terminator_ids,
+                'special_token_ids': sorted(self.model_manager.get_special_ids()),
+                'chat_template': getattr(self.model_manager.tokenizer, 'chat_template', None),
+                'chat_template_kwargs': self.model_manager.chat_template_kwargs,
+                'run_config': self.run_config,
+            },
         )
 
     @staticmethod
@@ -264,7 +290,7 @@ class CollectionRunner:
         profile_name = item.profile if isinstance(item, SafetyTaskItem) else item.meta.get('profile')
         seed_override = item.meta.get('seed')
         if profile_name and self._profiles and profile_name in self._profiles:
-            profile = self._profiles[profile_name]
+            profile = replace(self._profiles[profile_name], max_new_tokens=min(self._profiles[profile_name].max_new_tokens, self.generation_spec.max_new_tokens))
             if seed_override is not None:
                 return replace(profile, seed=seed_override)
             return profile
@@ -273,7 +299,7 @@ class CollectionRunner:
         return self.generation_spec
 
     def _process_safe(self, item: TaskItem) -> CollectResult:
-        rendered_prompt = self.task.render_prompt(item)
+        rendered_prompt = item.prompt_text or ''
         error_meta = {
             'sample_id': item.sample_id,
             'prompt_text': rendered_prompt,
@@ -282,6 +308,7 @@ class CollectionRunner:
             **item.meta,
         }
         try:
+            rendered_prompt = self.task.render_prompt(item)
             return self._process_sample(item, prompt_text=rendered_prompt)
         except torch.cuda.OutOfMemoryError:
             logger.warning('OOM on sample %d, skipping', item.sample_idx)
@@ -311,12 +338,14 @@ class CollectionRunner:
             token_offsets = self.offset_calculator.compute_offsets(response_text, gen_result.token_ids)
             generation_metrics = metrics_processor.finalize() if metrics_processor is not None else None
             meta = {
+                **item.meta,
                 'sample_id': item.sample_id,
                 'prompt_text': prompt_text,
+                'model_input_text': self.model_manager.render_chat_text(messages),
                 'ground_truth': item.ground_truth,
                 'n_prompt_tokens': gen_result.input_length,
+                'prompt_token_ids': input_ids[0].tolist(),
                 'language': getattr(item, 'language', 'en'),
-                **item.meta,
             }
             return CollectResult(
                 sample_idx=item.sample_idx,

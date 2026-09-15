@@ -49,14 +49,20 @@ No tokenizer needed at read time. Works correctly for CJK, Arabic, multi-byte ch
 ### Zero GPU for Reading
 `openact-core` depends only on numpy, zarr, pandas, and pyarrow. You can load a 32-layer, 4096-dim hidden state dataset on a CPU-only machine, a CI server, or a Jupyter notebook without ever importing torch.
 
-### Async I/O Pipeline
-During collection, a background thread writes Zarr arrays while the GPU processes the next sample. The GPU never stalls on disk I/O.
+### Teacher-Forced Activation Collection
+Generation chooses the response tokens. A separate teacher-forced forward pass over
+prompt + response measures the raw states for those exact token positions. The
+final normalization module is captured both before and after normalization.
+
+### Synchronous Storage
+The current Zarr writer writes each sample synchronously. `AsyncZarrWriter` is a
+compatibility alias; `queue_size` does not enable background writes.
 
 ### Hierarchical Zarr Storage
 Hidden states, attention patterns, and MLP activations are stored in a single Zarr group with lazy, chunked access. You can read one sample's hidden states without loading the entire dataset into memory.
 
 ### Complete Reproducibility
-Every run writes a `manifest.json` capturing: model identifier + revision, prompt template (with SHA-256 hash), generation hyperparameters, capture configuration, environment (Python / torch / transformers versions, CUDA version, hostname, command line). A `_SUCCESS` marker with validation results is written only after integrity checks pass.
+Every run writes a `manifest.json` capturing: model identifier + resolved revision, pinned dataset sources, actual chat template, prompt template (with SHA-256 hash), generation hyperparameters, capture configuration, environment (Python / torch / transformers versions, CUDA version, hostname, command line). A `_SUCCESS` marker is written only after structural integrity checks pass.
 
 ### Built-in Evaluation
 `openact-eval` provides deterministic parser-based evaluation for 10+ benchmarks, LLM-as-judge evaluation (OpenAI / Anthropic backends), safety evaluation (refusal heuristics + LlamaGuard), and a unified pipeline that stores results as labels alongside the run.
@@ -65,19 +71,23 @@ Every run writes a `manifest.json` capturing: model identifier + revision, promp
 
 ## Installation
 
+From this checkout (Python 3.11 is the tested environment):
+
 ```bash
-# Core: read and analyze activation data (no torch required)
-pip install openact-core
-
-# Collect: run model inference and collect activations (requires torch + transformers)
-pip install openact-collect
-
-# Eval: evaluate runs with parsers or LLM judges
-pip install openact-eval
-
-# Or install everything
-pip install openact-eval[all]  # includes openai + anthropic clients
+uv sync --frozen --extra dev
 ```
+
+Or install the local packages together with pip:
+
+```bash
+python -m pip install -e packages/openact-core -e packages/openact-collect -e packages/openact-eval -e .
+```
+
+`openact-core` can be installed by itself to read data without torch.
+`openact-eval[llm]` adds API judge clients; these are optional.
+
+See [the readiness audit](reports/readiness.md) for tested versions, known limits,
+and the GPU smoke commands.
 
 ---
 
@@ -92,10 +102,30 @@ openact collect \
     --task gsm8k \
     --output runs/gsm8k_qwen \
     --max-samples 500 \
-    --layers -1,-2,-3          # last 3 layers only
+    --layers=-1,-2,-3          # last 3 layers only
 ```
 
-Collection supports resume (`--no-resume` to disable), per-sample timeouts (`--timeout 300`), OOM recovery, and async Zarr writing. See `openact collect --help` for all options.
+Collection records per-sample errors and catches CUDA OOM. It rejects an existing
+run directory: resume, per-sample timeouts, and async writing are not implemented.
+A structurally valid run can contain failed samples; the CLI exits nonzero when
+any sample fails. `_SUCCESS` is written after structural validation.
+
+The supplied research configuration enables greedy zero-shot CoT, bf16 inference,
+float32 storage at **every layer including embeddings**, prompt-last, every generated
+token, and pre/post-final-norm capture. It starts with 20 MATH examples:
+
+```bash
+uv run openact config-check configs/research.toml
+uv run openact collect --config configs/research.toml
+```
+
+See [collection against the supplied paper](reports/paper_collection.md) for model
+dimensions, token conventions, remaining reproduction gaps, and the GPU acceptance
+script for all four generation models.
+
+Explicit CLI flags override TOML collection settings. The TOML's `analysis` tables
+record your CPU GMM/ICL/alignment/split/smoothing/FAR settings for a downstream
+fitter; they do not execute analysis. vLLM is not integrated.
 
 Available tasks: `gsm8k`, `mgsm`, `mmlu`, `math`, `arc_challenge`, `commonsenseqa`, `belebele`, `theoremqa`, `truthfulqa`, `humaneval`, `ifeval`, `jbb`, `advbench`, `xstest`.
 
@@ -131,6 +161,24 @@ import numpy as np
 X = run.get_all_hidden_states(reduction="mean", layers=[-1])  # (N, 1, H)
 y = run.get_all_labels("is_correct")                           # (N,) bool
 ```
+
+### Final normalization states
+
+`hidden_states` keeps Hugging Face layer indexing: entry 0 is the embedding output,
+and the last entry is the final norm output for the supported Llama/Qwen models.
+The final block's residual output is available separately as `final_norm/pre`.
+
+```python
+before = sample.get_final_norm_states("pre")               # (T, H)
+after = sample.get_final_norm_states("post")               # (T, H)
+mean_before = sample.get_final_norm_states("pre", "mean")  # (H,)
+prompt_before = sample.get_final_norm_states("pre", "prompt_last")
+```
+
+Values are stored without additional normalization. Token tensors include EOS or
+other generated special tokens with zero-width text offsets. New manifests record
+`custom.activation_extraction = "teacher_forced_forward"` and
+`custom.token_alignment = "response_token"`; older runs are not rewritten.
 
 ### 3. Evaluate
 
@@ -209,7 +257,6 @@ The read-only data layer. No torch dependency.
 | `tasks.parsers` | Answer extraction: `NumericParser`, `MCParser4/5`, `MathParser`, `CodeParser`, `RefusalParser`, etc. |
 | `tasks.templates` | Prompt templates for all supported benchmarks, with multilingual prefix localization. |
 | `export` | `export_to_numpy()`, `export_to_hf_dataset()`, `export_alignments()`. |
-| `hub` | `load_run()` with automatic R2 pull. `openact-sync push/pull/list` CLI. |
 
 ### openact-collect
 
@@ -217,10 +264,10 @@ The GPU-side collection engine.
 
 | Module | Purpose |
 |--------|---------|
-| `engine.Collector` | Orchestrator. Handles plan iteration, guarded execution (SIGALRM timeout, OOM recovery), parquet partitioning, resume. |
-| `engine.ModelManager` | HuggingFace model loading, chat template application, `generate()` with hidden-state output. |
-| `engine.AsyncZarrWriter` | Background-thread writer. Dynamic array resizing, sample pointer management, resume index detection. |
-| `engine.OffsetCalculator` | Multi-strategy token→char offset computation: native offset mapping → incremental decode → byte-level alignment → linear fallback. |
+| `engine.Collector` | Orchestrator. Handles plan iteration, per-sample error/OOM handling, parquet partitioning, and validation. |
+| `engine.ModelManager` | HuggingFace model loading, chat template application, generation followed by a teacher-forced activation pass. |
+| `engine.AsyncZarrWriter` | Synchronous writer (compatibility alias). Array resizing and sample pointer management. |
+| `engine.OffsetCalculator` | Multi-strategy token→char offset computation: native offset mapping → verified prefix decoding, including split Unicode bytes. |
 | `engine.OnlineMetricsProcessor` | Injects as a `LogitsProcessor` to compute perplexity, entropy, max-probability during generation with zero extra forward passes. |
 | `extractors.HiddenStateExtractor` | Extracts per-token, mean, and prompt-last hidden states from `GenerationResult`. Supports layer selection and dtype casting. |
 | `tasks.capability.*` | 11 benchmark tasks (GSM8K, MGSM, MMLU, MATH, ARC, CommonsenseQA, Belebele, TheoremQA, TruthfulQA, HumanEval, IFEval). |
@@ -373,28 +420,6 @@ dataset = export_to_hf_dataset("runs/gsm8k_qwen", include_hidden_states=True)
 dataset.push_to_hub("username/gsm8k-qwen-activations")
 ```
 
-### Cloud Sync
-
-```bash
-# Push a completed run to R2
-openact-sync push gsm8k_qwen_20250101
-
-# Pull a run from R2
-openact-sync pull gsm8k_qwen_20250101
-
-# List available runs
-openact-sync list
-```
-
-```python
-from openact_core import load_run
-
-# Auto-pulls from R2 if not found locally
-run = load_run("gsm8k_qwen_20250101")
-```
-
----
-
 ## Supported Tasks
 
 | Task | Type | Source | Parser | Evaluator |
@@ -407,12 +432,12 @@ run = load_run("gsm8k_qwen_20250101")
 | CommonsenseQA | Reasoning | `tau/commonsense_qa` | MC-5 | Parser |
 | Belebele | Reading comprehension | `facebook/belebele` | MC-4 | Parser |
 | TheoremQA | Math/Science | `TIGER-Lab/TheoremQA` | Type-aware | Parser |
-| TruthfulQA | Truthfulness | `truthful_qa` | Freeform | LLM Judge |
+| TruthfulQA | Truthfulness | `truthfulqa/truthful_qa` | Freeform | LLM Judge |
 | HumanEval | Code | `openai/openai_humaneval` | Code | LLM Judge |
 | IFEval | Instruction following | `google/IFEval` | Freeform | LLM Judge |
 | JailbreakBench | Safety | `JailbreakBench/JBB-Behaviors` | Refusal | Safety |
-| AdvBench | Safety | `walledai/AdvBench` | Refusal | Safety |
-| XSTest | Safety (over-refusal) | `nreimers/XSTest` | Refusal | Safety |
+| AdvBench | Safety | `S3IC/advbench` | Refusal | Safety |
+| XSTest | Safety (over-refusal) | `Paul/XSTest` | Refusal | Safety |
 
 ---
 
@@ -430,8 +455,7 @@ openact/
     │       ├── schema/                     # Manifest, SampleStatus
     │       ├── tasks/                      # Templates, Parsers, Descriptors
     │       ├── export/                     # numpy, HuggingFace converters
-    │       ├── hub.py                      # load_run, R2 sync
-    │       └── cli/                        # openact-sync CLI
+    │       └── cli/                        # openact-validate CLI
     ├── openact-collect/                    # Collection engine (requires torch)
     │   └── src/openact_collect/
     │       ├── engine/                     # Collector, ModelManager, AsyncWriter
@@ -454,23 +478,17 @@ openact/
 ## Development
 
 ```bash
-git clone xxx
-cd openact
-
-# Install all packages in editable mode
-pip install -e packages/openact-core[dev]
-pip install -e packages/openact-collect[dev]
-pip install -e packages/openact-eval[dev]
-
-# Run tests
-pytest packages/openact-core/tests/
-pytest packages/openact-collect/tests/ -m "not slow and not gpu"
-pytest packages/openact-eval/tests/
-
-# Lint
-ruff check packages/
-black --check packages/
+uv sync --frozen --extra dev
+uv run pytest tests
+uv run python scripts/audit_data_and_prompts.py
+uv build --all-packages
 ```
+
+The original dataset tests require network access or a populated Hugging Face
+cache. `tests/test_10_runtime.py` and `tests/test_11_config_and_integrity.py` run
+offline with tiny real models and cover activation values, storage, configuration,
+error handling, and evaluation. The optional tests in `test_08_smoke_run.py` read
+an existing `runs/smoke` directory.
 
 ---
 
