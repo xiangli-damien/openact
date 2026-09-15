@@ -26,8 +26,9 @@ Its default task is MATH, with a 20-sample limit for an initial run.
 CPU numerical tests check the Llama 2, Llama 3, Llama 3.2 (including its scaled
 RoPE), and Qwen2 implementations, with eager attention and SDPA. These use tiny
 random models. Actual model tokenizers/configurations were checked separately.
-**Full-size GPU execution and exact reproduction of the paper's results remain
-unverified.** The GPU acceptance command below verifies the actual checkpoints.
+**Qwen2-7B-Instruct has now passed a two-sample CUDA/bf16 collection check on an
+A100 40GB.** Other full-size checkpoints and exact reproduction of the paper's
+results remain unverified. See [the Lambda setup report](lambda_gpu_setup.md).
 
 Verification: 197 tests passed / 12 existing-run tests skipped on Transformers
 5.17.0; all 53 updated runtime/config tests also passed on 4.57.6. The dataset

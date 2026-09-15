@@ -13,6 +13,21 @@ Connect using `ssh gpu2`, or select `gpu2` in Cursor Remote-SSH.
 
 ## Environment
 
+### Verified on this instance
+
+- Python 3.11.16; PyTorch 2.14.0 + CUDA 13.0; Transformers 5.17.0.
+- CUDA and bf16 are available; a bf16 CUDA matrix multiplication passed.
+- All 55 runtime/configuration tests passed on the server.
+- Actual Qwen2-7B-Instruct collection passed: two 16-token samples, all 29 hidden
+  entries, prompt-last, generation means, and pre/post final RMSNorm.
+- Independent causal-prefix comparison: maximum relative L2 errors 1.97% and
+  2.65%, within the recorded 3% bf16 tolerance. Peak CUDA allocation was 15.26 GB.
+- Environment and raw check results: [lambda_environment.json](lambda_environment.json)
+  and [lambda_qwen2_check.json](lambda_qwen2_check.json).
+- Qwen2 weights are cached. Meta model weight requests return HTTP 401 until an
+  authorized HF account is configured; server HF authentication is currently absent.
+- No full dataset activation collection has been launched.
+
 Create an isolated Python 3.11 environment from the committed lockfile:
 
 ```bash
@@ -30,6 +45,28 @@ must also pass the workspace smoke checks. See
 [NVIDIA's compatibility table](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html).
 
 ## Selected datasets
+
+All selected data have been downloaded, rendered with `zot`, and written to
+`/home/ubuntu/openact-data/prepared`. Prepared Parquet row counts were checked:
+
+| Directory | Rows |
+|---|---:|
+| `math` | 5,000 |
+| `mmlu` | 14,042 |
+| `theoremqa` | 800 (53 image questions marked) |
+| `belebele_en`, `belebele_de`, `belebele_zh`, `belebele_ar`, `belebele_es` | 900 each |
+
+See [lambda_datasets.json](lambda_datasets.json). Each prepared directory also
+contains the prompt template and pinned dataset sources in `prepared_manifest.json`.
+To collect directly from these frozen prompts:
+
+```bash
+uv run openact collect --config configs/capability.toml \
+  --task prepared --prepared-path /home/ubuntu/openact-data/prepared/mmlu \
+  --output runs/mmlu_qwen2_prepared
+```
+
+That command launches a full collection; it has not been run during setup.
 
 The [full capability configuration](../configs/capability.toml) defaults to Qwen2,
 full MMLU, greedy zero-shot CoT, bf16 inference, and float32 all-layer storage with

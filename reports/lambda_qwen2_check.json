@@ -1,0 +1,42 @@
+{
+  "created_at": "2026-09-15T23:49:21.811255+00:00",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "torch": "2.14.0+cu130",
+  "cuda": "13.0",
+  "relative_l2_tolerance": 0.03,
+  "models": [
+    {
+      "model": "Qwen/Qwen2-7B-Instruct",
+      "passed": true,
+      "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+      "samples": [
+        {
+          "prompt_tokens": 35,
+          "generated_tokens": 16,
+          "hidden_shape": [
+            16,
+            29,
+            3584
+          ],
+          "finish_reason": "length",
+          "max_relative_l2_error": 0.01972182099231908,
+          "prefix_forwards_checked": 17
+        },
+        {
+          "prompt_tokens": 34,
+          "generated_tokens": 16,
+          "hidden_shape": [
+            16,
+            29,
+            3584
+          ],
+          "finish_reason": "length",
+          "max_relative_l2_error": 0.026528641563197078,
+          "prefix_forwards_checked": 17
+        }
+      ],
+      "peak_cuda_allocated_bytes": 15260462592
+    }
+  ],
+  "passed": true
+}

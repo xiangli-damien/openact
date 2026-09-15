@@ -2,9 +2,10 @@
 
 ## Result
 
-The collection path now passes CPU numerical, storage, CLI, dataset, tokenizer,
-and package-build checks. **The full-size models have not been run on CUDA.**
-Run the GPU smoke command below before launching a full collection.
+The collection path passes CPU numerical, storage, CLI, dataset, tokenizer,
+and package-build checks. **Qwen2-7B-Instruct has now passed a short full-size
+CUDA/bf16 collection check on A100 40GB.** Other checkpoints and long-context
+capacity remain unverified; see [the Lambda setup report](lambda_gpu_setup.md).
 
 The follow-up [paper collection audit](paper_collection.md) checks the supplied
 paper's layer/token conventions and model matrix. The research TOML now defaults
@@ -182,9 +183,9 @@ HarmBench still requires prepared data; see the paper audit for fidelity gaps.
 
 ## Remaining limits
 
-- Actual CUDA allocation, bf16 kernels, driver compatibility, peak memory and
-  throughput on A100/H100 80GB remain untested. Use the GPU smoke run to confirm
-  them. The teacher-forced pass has different memory use from generation; attention
+- Qwen2's short A100 40GB check passed with 15.26 GB peak CUDA allocation.
+  Long responses, other checkpoints, and A100/H100 80GB remain untested.
+  The teacher-forced pass has different memory use from generation; attention
   patterns require eager attention and can substantially increase memory use.
 - `meta-llama/LlamaGuard-7b` returned HTTP 403 for tokenizer access in this
   environment. Its version remains provisional in the TOML. Obtain repository

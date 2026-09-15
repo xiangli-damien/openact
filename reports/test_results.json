@@ -864,5 +864,13 @@
     "transformers": "4.57.6",
     "scope": "tests/test_10_runtime.py and tests/test_11_config_and_integrity.py",
     "result": "53 passed in 5.44s"
+  },
+  "lambda_runtime_run": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "scope": "tests/test_10_runtime.py and tests/test_11_config_and_integrity.py",
+    "result": "55 passed in 11.47s",
+    "cuda_collection_report": "lambda_qwen2_check.json"
   }
 }
