@@ -1,0 +1,35 @@
+{
+  "math": {
+    "rows": 5000,
+    "directory": "/home/ubuntu/openact-data/prepared/math"
+  },
+  "mmlu": {
+    "rows": 14042,
+    "directory": "/home/ubuntu/openact-data/prepared/mmlu"
+  },
+  "theoremqa": {
+    "rows": 800,
+    "directory": "/home/ubuntu/openact-data/prepared/theoremqa",
+    "image_questions": 53
+  },
+  "belebele_en": {
+    "rows": 900,
+    "directory": "/home/ubuntu/openact-data/prepared/belebele_en"
+  },
+  "belebele_de": {
+    "rows": 900,
+    "directory": "/home/ubuntu/openact-data/prepared/belebele_de"
+  },
+  "belebele_zh": {
+    "rows": 900,
+    "directory": "/home/ubuntu/openact-data/prepared/belebele_zh"
+  },
+  "belebele_ar": {
+    "rows": 900,
+    "directory": "/home/ubuntu/openact-data/prepared/belebele_ar"
+  },
+  "belebele_es": {
+    "rows": 900,
+    "directory": "/home/ubuntu/openact-data/prepared/belebele_es"
+  }
+}

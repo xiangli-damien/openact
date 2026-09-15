@@ -1,0 +1,25 @@
+{
+  "python": "3.11.16",
+  "versions": {
+    "torch": "2.14.0",
+    "transformers": "5.17.0",
+    "datasets": "5.0.1",
+    "numpy": "2.4.6",
+    "pandas": "3.0.5",
+    "pyarrow": "25.0.1",
+    "zarr": "2.18.7",
+    "numcodecs": "0.13.1",
+    "accelerate": "1.15.0"
+  },
+  "cuda_runtime": "13.0",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "gpu_memory_bytes": 42405855232,
+  "bf16_supported": true,
+  "git_revision": "7c3593fb18269dd179fd89aab18d1e9e31d5903f",
+  "runtime_config_tests": {
+    "passed": 55,
+    "log": "/home/ubuntu/openact-runtime-tests.log"
+  },
+  "free_disk_bytes": 484916776960,
+  "bf16_matmul_finite": true
+}
