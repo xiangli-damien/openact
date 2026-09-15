@@ -1,6 +1,9 @@
 import math
+from typing import TYPE_CHECKING
 import torch
 from transformers.generation.logits_process import LogitsProcessor
+if TYPE_CHECKING:
+    from openact_collect.extractors.hidden_state_data import GenerationMetrics
 class OnlineMetricsProcessor(LogitsProcessor):
     def __init__(self, greedy: bool = True):
         self.greedy = greedy

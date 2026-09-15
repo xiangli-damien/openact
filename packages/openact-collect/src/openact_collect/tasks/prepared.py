@@ -14,6 +14,9 @@ class PreparedParquetTask(Task):
     source = 'prepared_parquet'
 
     def __init__(self, prepared_path: Union[str, Path], max_samples: Optional[int] = None, **kwargs: Any):
+        # Prepared rows already contain rendered prompts and their own split.
+        kwargs.pop('split', None)
+        kwargs.pop('template', None)
         super().__init__(max_samples=max_samples, split='', template=None, **kwargs)
         self.prepared_path = Path(prepared_path)
         self._files = self._resolve_files(self.prepared_path)
@@ -46,6 +49,7 @@ class PreparedParquetTask(Task):
     def _apply_prepared_manifest(self) -> None:
         if not self._prepared_manifest:
             return
+        self.dataset_sources = self._prepared_manifest.get('dataset_sources', [])
         task_name = self._prepared_manifest.get('task')
         if task_name:
             self.task_name = str(task_name)
@@ -90,7 +94,7 @@ class PreparedParquetTask(Task):
                 return {}
         return {}
 
-    def get_prompt_template(self) -> PromptTemplate:
+    def get_prompt_template_for_item(self, item: Optional[TaskItem] = None) -> PromptTemplate:
         template_data = self._prepared_manifest.get('prompt_template')
         if isinstance(template_data, dict) and template_data:
             try:
@@ -108,7 +112,7 @@ class PreparedParquetTask(Task):
                     return
                 record: Dict[str, Any] = row.to_dict()
                 prompt_text = record.get('prompt_text')
-                if prompt_text is None or str(prompt_text) == '':
+                if pd.isna(prompt_text) or str(prompt_text) == '':
                     continue
                 sample_id = record.get('sample_id', f'prepared_{idx}')
                 ground_truth = record.get('ground_truth')
@@ -124,7 +128,7 @@ class PreparedParquetTask(Task):
                     sample_id=str(sample_id),
                     prompt_text=str(prompt_text),
                     prompt_fields=prompt_fields,
-                    ground_truth=None if ground_truth is None else str(ground_truth),
+                    ground_truth=None if pd.isna(ground_truth) else str(ground_truth),
                     language=str(language),
                     meta=meta,
                 )

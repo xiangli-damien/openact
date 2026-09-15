@@ -8,7 +8,7 @@ Run:
     python -m pytest tests/test_02_mgsm_multilingual.py -v -s -k ja   # one lang
 """
 import pytest
-from conftest import MGSM_LANGS
+from tests.conftest import MGSM_LANGS
 from openact_core.tasks.templates import ANSWER_PREFIXES
 
 

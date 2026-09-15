@@ -78,6 +78,15 @@ class Sample:
         return np.asarray(self._run._zarr["tokens/ids"][start:end])
 
     @property
+    def prompt_token_ids(self) -> np.ndarray:
+        """Exact model input IDs, including chat-template markers; requires new runs."""
+        import json
+        raw = self.meta.get('prompt_token_ids_json')
+        if not isinstance(raw, str):
+            raise KeyError('Exact prompt token IDs were not saved in this run')
+        return np.asarray(json.loads(raw), dtype=np.int64)
+
+    @property
     def token_offsets(self) -> np.ndarray:
         start, end = self._ptr
         return np.asarray(self._run._zarr["tokens/offsets"][start:end])
@@ -99,6 +108,19 @@ class Sample:
 
     def find_all_text(self, substring: str) -> List[TokenSpan]:
         return self.aligner.find_all_substrings(substring)
+
+    def get_final_norm_states(self, side: str = 'pre', reduction: str = 'none') -> np.ndarray:
+        """Read final-norm input/output as (T, H), mean (H,), or prompt_last (H,)."""
+        if side not in ('pre', 'post') or reduction not in ('none', 'mean', 'prompt_last'):
+            raise ValueError('Use side=pre/post and reduction=none/mean/prompt_last')
+        name = 'per_token' if reduction == 'none' else reduction
+        path = f'final_norm/{side}/{name}'
+        if path not in self._run._zarr:
+            raise KeyError(f'{path} was not captured in this run')
+        if reduction == 'none':
+            start, end = self._ptr
+            return np.asarray(self._run._zarr[path][start:end])
+        return np.asarray(self._run._zarr[path][self._idx])
 
     @property
     def hidden_states(self) -> np.ndarray:

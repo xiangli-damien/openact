@@ -25,9 +25,9 @@ class HiddenStateExtractor(Extractor):
         self._n_layers = int(self.model_manager.probed_n_layers)
         self._decoder_n_layers = int(self.model_manager.decoder_n_layers)
         self._hidden_dim = int(self.model_manager.get_model_spec().hidden_dim or 0)
-        self._layer_indices = self.capture_spec.get_effective_layers(self._n_layers)
-        self._attn_layer_indices = self.capture_spec.get_effective_attention_layers(self._decoder_n_layers)
-        self._mlp_layer_indices = self.capture_spec.get_effective_mlp_layers(self._decoder_n_layers)
+        self._layer_indices = self.capture_spec.get_effective_layers(self._n_layers) if self.capture_spec.hidden_states else []
+        self._attn_layer_indices = self.capture_spec.get_effective_attention_layers(self._decoder_n_layers) if self.capture_spec.attention else []
+        self._mlp_layer_indices = self.capture_spec.get_effective_mlp_layers(self._decoder_n_layers) if self.capture_spec.mlp else []
         self._initialized = True
 
     @property
@@ -59,7 +59,7 @@ class HiddenStateExtractor(Extractor):
             self._hf_layer_offset = self._infer_hf_layer_offset(step_hs)
         actual_idx = layer_idx + self._hf_layer_offset
         if actual_idx < 0 or actual_idx >= len(step_hs):
-            return torch.zeros(self._hidden_dim, dtype=target_dtype, device=step_hs[0].device)
+            raise ValueError(f'Missing hidden state for selected layer {layer_idx}')
         tensor = step_hs[actual_idx]
         if tensor.dim() == 3:
             return tensor[0, -1, :].to(target_dtype)
@@ -124,11 +124,13 @@ class HiddenStateExtractor(Extractor):
             matrices_f32 = [self._extract_step_matrix_torch(hidden_states[idx], torch.float32) for idx in keep_indices if idx < len(hidden_states)]
             if matrices_f32:
                 n_tokens = len(matrices_f32)
+                states_f32 = torch.stack(matrices_f32, dim=0)
+                del matrices_f32
                 if self.capture_spec.save_mean_states:
-                    mean_states = torch.stack(matrices_f32, dim=0).mean(dim=0).cpu().numpy().astype(np.float32)
+                    mean_states = states_f32.mean(dim=0).cpu().numpy()
                 if self.capture_spec.save_per_token:
                     out_dtype = np.float16 if self.capture_spec.hidden_states_dtype == 'float16' else np.float32
-                    per_token = torch.stack(matrices_f32, dim=0).cpu().numpy().astype(out_dtype)
+                    per_token = states_f32.cpu().numpy().astype(out_dtype, copy=False)
                 if self.capture_spec.save_prompt_last:
                     has_prompt_step = len(hidden_states) == gen_result.generated_length + 1
                     if has_prompt_step:
@@ -142,7 +144,20 @@ class HiddenStateExtractor(Extractor):
         attn_out = self._extract_trace_outputs(traces.attn_outputs if traces is not None else None, keep_indices, self._attn_layer_indices or [], int(self._hidden_dim or 0))
         mlp_out = self._extract_trace_outputs(traces.mlp_outputs if traces is not None else None, keep_indices, self._mlp_layer_indices or [], int(self._hidden_dim or 0))
         attn_pat = self._extract_trace_patterns(traces.attn_patterns if traces is not None else None, keep_indices, self._attn_layer_indices or [], int(getattr(self.capture_spec, 'attention_pattern_window', 256) or 256))
-        return HiddenStateData(per_token_states=per_token, mean_states=mean_states, prompt_last_states=prompt_last, attention_outputs=attn_out, attention_patterns=attn_pat, mlp_outputs=mlp_out, n_tokens=n_tokens)
+        final_norm = {}
+        if self.capture_spec.hidden_states and self.capture_spec.final_norm:
+            for side in ('pre', 'post'):
+                steps = getattr(traces, f'final_norm_{side}', None)
+                if steps is None or len(steps) != gen_result.generated_length + 1:
+                    raise ValueError(f'Missing or misaligned final norm {side} states')
+                values = torch.stack([steps[i] for i in keep_indices]).float().numpy()
+                if self.capture_spec.save_per_token:
+                    final_norm[f'final_norm_{side}'] = values.astype(self.capture_spec.hidden_states_dtype)
+                if self.capture_spec.save_mean_states:
+                    final_norm[f'final_norm_{side}_mean'] = values.mean(axis=0)
+                if self.capture_spec.save_prompt_last:
+                    final_norm[f'final_norm_{side}_prompt_last'] = steps[0].float().numpy()
+        return HiddenStateData(per_token_states=per_token, mean_states=mean_states, prompt_last_states=prompt_last, attention_outputs=attn_out, attention_patterns=attn_pat, mlp_outputs=mlp_out, n_tokens=n_tokens, **final_norm)
 
     @staticmethod
     def _extract_trace_outputs(trace_steps: Optional[List[Dict[int, torch.Tensor]]], keep_indices: List[int], layer_indices: List[int], hidden_dim: int) -> Optional[np.ndarray]:
@@ -158,7 +173,7 @@ class HiddenStateExtractor(Extractor):
             for layer_pos, layer in enumerate(layer_indices):
                 vector = step.get(layer)
                 if vector is None:
-                    continue
+                    raise ValueError(f'Missing activation for layer {layer}, step {step_idx}')
                 values = vector.detach().cpu().numpy().astype(np.float16, copy=False)
                 if values.shape[0] >= hidden_dim:
                     out[token_index, layer_pos, :] = values[:hidden_dim]

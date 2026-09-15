@@ -40,11 +40,16 @@ def _build_task_kwargs(args: argparse.Namespace) -> Dict[str, Any]:
     prepared_path = getattr(args, 'prepared_path', None)
     if prepared_path:
         task_kwargs['prepared_path'] = prepared_path
+    if getattr(args, 'dataset_revision', None):
+        task_kwargs['dataset_revision'] = args.dataset_revision
     task_name = str(getattr(args, 'task', '')).lower()
     if task_name in ('jbb', 'advbench', 'xstest'):
         try:
             from openact_collect.tasks.safety.cli_extension import resolve_safety_task_kwargs
             task_kwargs.update(resolve_safety_task_kwargs(args))
+            if getattr(args, '_run_config', None) and not args.profiles:
+                from openact_collect.schema import GenerationProfile
+                task_kwargs['profiles'] = {'configured': GenerationProfile(name='configured', max_new_tokens=args.max_tokens, temperature=args.temperature, top_p=args.top_p, top_k=args.top_k, seed=args.seed)}
         except ImportError as exc:
             raise ImportError('Safety tasks require additional dependencies. Please ensure safety task modules are available.') from exc
     return task_kwargs
@@ -55,21 +60,26 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest='command', help='Commands')
 
     collect_parser = subparsers.add_parser('collect', help='Collect activation data', description='Run data collection with specified model and task.')
-    collect_parser.add_argument('--model', '-m', required=True, help="Model name or path (e.g. 'Qwen/Qwen2-7B-Instruct')")
-    collect_parser.add_argument('--task', '-t', required=True, help="Task name (e.g. 'gsm8k', 'mmlu', 'math', 'arc_challenge', 'truthfulqa')")
-    collect_parser.add_argument('--output', '-o', required=True, help='Output directory for the run')
+    collect_parser.add_argument('--config', help='Run TOML; explicit CLI flags override it')
+    collect_parser.add_argument('--model', '-m', help="Model name or path (e.g. 'Qwen/Qwen2-7B-Instruct')")
+    collect_parser.add_argument('--task', '-t', help="Task name (e.g. 'gsm8k', 'mmlu', 'math', 'arc_challenge', 'truthfulqa')")
+    collect_parser.add_argument('--output', '-o', help='Output directory for the run')
     data_group = collect_parser.add_argument_group('data options')
     data_group.add_argument('--max-samples', '-n', type=int, default=None)
     data_group.add_argument('--split', default=None, help='Dataset split override (default: task-specific)')
     data_group.add_argument('--template', default=None)
     data_group.add_argument('--language', default=None)
+    data_group.add_argument('--dataset-revision', default=None)
     data_group.add_argument('--prepared-path', default=None, help="Path to prepared parquet parts (only used when task='prepared')")
     model_group = collect_parser.add_argument_group('model options')
     model_group.add_argument('--dtype', choices=['auto', 'float16', 'bfloat16', 'float32'], default='auto')
     model_group.add_argument('--device-map', default='auto')
+    model_group.add_argument('--revision', default=None, help='Model and tokenizer revision')
+    model_group.add_argument('--attn-implementation', choices=['eager', 'sdpa', 'flash_attention_2'], default=None)
     capture_group = collect_parser.add_argument_group('capture options')
     capture_group.add_argument('--layers', type=str, default=None)
     capture_group.add_argument('--no-hidden-states', action='store_true')
+    capture_group.add_argument('--no-final-norm', action='store_true', help='Disable pre/post final normalization capture')
     capture_group.add_argument('--hidden-dtype', choices=['float16', 'float32'], default='float16')
     capture_group.add_argument('--attention', action='store_true')
     capture_group.add_argument('--attention-layers', type=str, default=None)
@@ -82,6 +92,8 @@ def main() -> None:
     gen_group.add_argument('--max-tokens', type=int, default=2048)
     gen_group.add_argument('--temperature', type=float, default=0.0)
     gen_group.add_argument('--top-p', type=float, default=1.0)
+    gen_group.add_argument('--top-k', type=int, default=None)
+    gen_group.add_argument('--stop-sequences', nargs='+', default=[])
     gen_group.add_argument('--seed', type=int, default=42)
     gen_group.add_argument('--queue-size', type=int, default=8, help='Compatibility arg. The writer is synchronous; this value is ignored.')
     try:
@@ -128,11 +140,28 @@ def main() -> None:
     info_parser = subparsers.add_parser('info', help='Show information about a run')
     info_parser.add_argument('run_dir')
 
+    config_parser = subparsers.add_parser('config-check', help='Validate a run TOML without loading weights')
+    config_parser.add_argument('path')
+
+    if len(sys.argv) > 1 and sys.argv[1] == 'collect':
+        probe = argparse.ArgumentParser(add_help=False)
+        probe.add_argument('--config')
+        config_args, _ = probe.parse_known_args()
+        if config_args.config:
+            from openact_collect.config import cli_defaults, load_run_config
+            try:
+                collect_parser.set_defaults(**cli_defaults(load_run_config(config_args.config)))
+            except (ValueError, OSError) as exc:
+                parser.error(str(exc))
+
     args = parser.parse_args()
     if args.command is None:
         parser.print_help()
         sys.exit(0)
     if args.command == 'collect':
+        for required in ('model', 'task', 'output'):
+            if not getattr(args, required, None):
+                parser.error(f'collect requires --{required} or its TOML setting')
         cmd_collect(args)
     elif args.command == 'prepare':
         cmd_prepare(args)
@@ -142,6 +171,12 @@ def main() -> None:
         cmd_list(args)
     elif args.command == 'info':
         cmd_info(args)
+    elif args.command == 'config-check':
+        from openact_collect.config import load_run_config
+        try:
+            print(json.dumps(load_run_config(args.path), indent=2))
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
 
 
 def cmd_collect(args: argparse.Namespace) -> None:
@@ -166,29 +201,38 @@ def cmd_collect(args: argparse.Namespace) -> None:
         sys.exit(1)
     logger.info('Split: %s', getattr(task, 'split', ''))
     logger.info('Loading model...')
-    model_runner = ModelRunner(model_name_or_path=args.model, dtype=args.dtype, device_map=args.device_map)
+    run_config = getattr(args, '_run_config', {})
+    model_runner = ModelRunner(model_name_or_path=args.model, dtype=args.dtype, device_map=args.device_map, revision=args.revision, attn_implementation=('eager' if args.attention_patterns else args.attn_implementation), chat_template_kwargs=run_config.get('model', {}).get('chat_template_kwargs'))
     want_attention = bool(getattr(args, 'attention', False) or getattr(args, 'attention_outputs', False) or getattr(args, 'attention_patterns', False))
     want_mlp = bool(getattr(args, 'mlp', False))
     capture_spec = CaptureSpec(
         hidden_states=not bool(getattr(args, 'no_hidden_states', False)),
+        final_norm=not bool(getattr(args, 'no_final_norm', False)),
         hidden_states_layers=parse_layers(getattr(args, 'layers', None) or ''),
         hidden_states_dtype=getattr(args, 'hidden_dtype', 'float16'),
+        save_per_token=getattr(args, 'save_per_token', True),
+        save_mean_states=getattr(args, 'save_mean_states', True),
+        save_prompt_last=getattr(args, 'save_prompt_last', True),
+        compute_online_metrics=getattr(args, 'compute_online_metrics', True),
         attention=want_attention,
         attention_layers=parse_layers(getattr(args, 'attention_layers', None) or ''),
         attention_save_patterns=bool(getattr(args, 'attention_patterns', False)),
-        attention_save_outputs=bool(getattr(args, 'attention_outputs', False) or want_attention),
+        attention_save_outputs=bool(getattr(args, 'attention_outputs', False) or (want_attention and run_config.get('capture', {}).get('attention_save_outputs', True))),
         attention_pattern_window=int(getattr(args, 'attention_window', 256) or 256),
         mlp=want_mlp,
         mlp_layers=parse_layers(getattr(args, 'mlp_layers', None) or ''),
-        mlp_save_output=want_mlp,
+        mlp_save_output=want_mlp and getattr(args, 'mlp_save_output', True),
     )
     generation_spec = GenerationSpec(
         max_new_tokens=int(getattr(args, 'max_tokens', 2048)),
         temperature=float(getattr(args, 'temperature', 0.0)),
         top_p=float(getattr(args, 'top_p', 1.0)),
+        top_k=args.top_k,
+        stop_sequences=args.stop_sequences,
+        do_sample=bool(getattr(args, 'do_sample', False)),
         seed=int(getattr(args, 'seed', 42)),
     )
-    runner = CollectionRunner(model_manager=model_runner, task=task, output_dir=args.output, capture_spec=capture_spec, generation_spec=generation_spec, queue_size=int(getattr(args, 'queue_size', 8)))
+    runner = CollectionRunner(model_manager=model_runner, task=task, output_dir=args.output, capture_spec=capture_spec, generation_spec=generation_spec, queue_size=int(getattr(args, 'queue_size', 8)), run_config=run_config)
     logger.info('Starting collection...')
     stats = runner.run()
     logger.info('Collection complete!')
@@ -198,6 +242,8 @@ def cmd_collect(args: argparse.Namespace) -> None:
     logger.info('Errors: %d', stats['error'] + stats['timeout'])
     logger.info('Duration: %.1fs', stats['duration_seconds'])
     logger.info('Output: %s', args.output)
+    if stats['error'] or stats['timeout']:
+        sys.exit(1)
 
 
 def cmd_prepare(args: argparse.Namespace) -> None:
@@ -237,6 +283,7 @@ def cmd_prepare(args: argparse.Namespace) -> None:
         'prompt_template_variant': getattr(task, '_template_variant', None),
         'task_config': dict(getattr(task, '_config', {}) or {}),
         'prompt_template': prompt_template.to_dict(),
+        'dataset_sources': task.dataset_sources,
     }
     (out_dir / 'prepared_manifest.json').write_text(json.dumps(prepared_manifest, indent=2, ensure_ascii=False), encoding='utf-8')
     logger.info('Prepared dataset written to: %s', out_dir)

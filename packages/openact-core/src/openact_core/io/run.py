@@ -496,9 +496,19 @@ class Run:
     def validate(self) -> List[str]:
         issues: List[str] = []
         issues.extend(self.manifest.validate())
-        for arr in ('tokens/ids', 'tokens/sample_ptr'):
+        for arr in ('tokens/ids', 'tokens/offsets', 'tokens/sample_ptr', 'sample_status'):
             if arr not in self._zarr:
                 issues.append(f'Missing required array: {arr}')
+        capture = self.manifest.capture_config
+        if self.manifest.custom.get('activation_extraction') == 'teacher_forced_forward' and capture.get('hidden_states'):
+            groups = ['hidden_states']
+            if capture.get('final_norm'):
+                groups.extend(['final_norm/pre', 'final_norm/post'])
+            for flag, name in (('save_per_token', 'per_token'), ('save_mean_states', 'mean'), ('save_prompt_last', 'prompt_last')):
+                if capture.get(flag, True):
+                    for group in groups:
+                        if f'{group}/{name}' not in self._zarr:
+                            issues.append(f'Missing configured array: {group}/{name}')
         if 'tokens/sample_ptr' in self._zarr:
             ptr = np.asarray(self._zarr['tokens/sample_ptr'][:])
             if len(ptr) > 1:
@@ -513,6 +523,19 @@ class Run:
                 n_samples_parquet = len(self._df)
                 if n_samples_zarr != n_samples_parquet:
                     issues.append(f'Sample count mismatch: zarr={n_samples_zarr}, parquet={n_samples_parquet}')
+            if len(ptr) and (ptr[0] != 0 or np.any(ptr < 0)):
+                issues.append('Invalid token pointers: expected zero start and nonnegative values')
+        if 'tokens/ids' in self._zarr:
+            n_tokens = self._zarr['tokens/ids'].shape[0]
+            for path in ('tokens/offsets', 'hidden_states/per_token', 'attention/output', 'attention/pattern', 'mlp/output', 'final_norm/pre/per_token', 'final_norm/post/per_token'):
+                if path in self._zarr and self._zarr[path].shape[0] != n_tokens:
+                    issues.append(f'Token count mismatch in {path}')
+        for path in ('sample_status', 'hidden_states/mean', 'hidden_states/prompt_last', 'final_norm/pre/mean', 'final_norm/post/mean', 'final_norm/pre/prompt_last', 'final_norm/post/prompt_last'):
+            if path in self._zarr and self._zarr[path].shape[0] != len(self._df):
+                issues.append(f'Sample count mismatch in {path}')
+        if 'sample_status' in self._zarr and self._zarr['sample_status'].shape[0] == len(self._df):
+            if not np.array_equal(self._zarr['sample_status'][:], self._df['status'].to_numpy()):
+                issues.append('Parquet and tensor sample statuses disagree')
         return issues
 
     def __repr__(self) -> str:
@@ -522,5 +545,3 @@ class Run:
     def __str__(self) -> str:
         mark = '✓' if self._is_complete else '⚠'
         return f'{mark} Run: {self.run_dir.name} ({self.n_valid}/{len(self)} valid)'
-
-

@@ -35,6 +35,7 @@ class SafetyTaskItem(TaskItem):
         return meta
 class SafetyTask(Task):
     task_type: str = "safety"
+    default_template: str = "raw"
     def __init__(
         self,
         max_samples: Optional[int] = None,
@@ -47,6 +48,8 @@ class SafetyTask(Task):
         **kwargs,
     ):
         super().__init__(max_samples=max_samples, split=split, template=template, **kwargs)
+        if self._template_variant not in ('raw', 'zot'):
+            raise ValueError('Safety templates must be raw or zot')
         self.profiles = profiles or dict(DEFAULT_SAFETY_PROFILES)
         self.include_goal = include_goal
         self.include_artifacts = include_artifacts
@@ -146,10 +149,17 @@ class SafetyTask(Task):
                         )
                         yield item
                         idx += 1
-    def get_prompt_template(self) -> PromptTemplate:
+    def get_prompt_template_for_item(self, item: Optional[TaskItem] = None) -> PromptTemplate:
+        cot = self._template_variant == 'zot'
         return PromptTemplate(
-            name=f"{self.task_name}_raw",
-            template="{prompt}",
+            name=f"{self.task_name}_{self._template_variant}",
+            template="{prompt}\n\nPlease reason step by step." if cot else "{prompt}",
             variables=("prompt",),
-            description="Raw prompt pass-through for safety tasks.",
+            description="Zero-shot CoT (project wording)." if cot else "Raw prompt pass-through for safety tasks.",
         )
+
+    def render_prompt(self, item: TaskItem) -> str:
+        # Safety items carry the underlying goal/artifact in prompt_text. Apply
+        # the requested wrapper explicitly rather than Task's rendered-text shortcut.
+        prompt = item.prompt_text if item.prompt_text is not None else item.prompt_fields['prompt']
+        return self.get_prompt_template_for_item(item).format(prompt=prompt)

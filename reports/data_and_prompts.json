@@ -1,0 +1,1699 @@
+{
+  "created_at": "2026-09-15T20:42:29.828199+00:00",
+  "models": [
+    {
+      "id": "meta-llama/Llama-3.2-1B-Instruct",
+      "revision": "9213176726f574b556790deb65791e0c5aa438b6",
+      "decoder_layers": 16,
+      "hidden_state_entries": 17,
+      "hidden_dim": 2048,
+      "eos_token_id": [
+        128001,
+        128008,
+        128009
+      ],
+      "template_sha256": "5816fce10444e03c2e9ee1ef8a4a1ea61ae7e69e438613f3b17b69d0426223a4",
+      "prompt_checks": 372,
+      "offset_checks": 10
+    },
+    {
+      "id": "Qwen/Qwen2-7B-Instruct",
+      "revision": "f2826a00ceef68f0f2b946d945ecc0477ce4450c",
+      "decoder_layers": 28,
+      "hidden_state_entries": 29,
+      "hidden_dim": 3584,
+      "eos_token_id": [
+        151645,
+        151643
+      ],
+      "template_sha256": "793202280c0910ab26bc6eb57c8212c2417324c6d8c4efd0d10d59092ab3e3eb",
+      "prompt_checks": 372,
+      "offset_checks": 10
+    },
+    {
+      "id": "meta-llama/Meta-Llama-3-8B-Instruct",
+      "revision": "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2",
+      "decoder_layers": 32,
+      "hidden_state_entries": 33,
+      "hidden_dim": 4096,
+      "eos_token_id": [
+        128001,
+        128009
+      ],
+      "template_sha256": "ba03a121d097859c7b5b9cd03af99aafe95275210d2876f642ad9929a150f122",
+      "prompt_checks": 372,
+      "offset_checks": 10
+    },
+    {
+      "id": "meta-llama/Llama-2-7b-chat-hf",
+      "revision": "f5db02db724555f92da89c216ac04704f23d4590",
+      "decoder_layers": 32,
+      "hidden_state_entries": 33,
+      "hidden_dim": 4096,
+      "eos_token_id": 2,
+      "template_sha256": "e8d5b5a546d3f19df16a5320c614fab05bdc4edd50e850f1afd947b503ea41cf",
+      "prompt_checks": 372,
+      "offset_checks": 10
+    }
+  ],
+  "datasets": [
+    {
+      "task": "gsm8k",
+      "rows": 1319,
+      "groups": {
+        "all": 1319
+      },
+      "variants": [
+        "zot",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "openai/gsm8k",
+          "config": "main",
+          "split": "test",
+          "revision": "740312add88f781978c0658806c59bc2815b9866",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "59ec1b7f9357c7a2"
+        }
+      ]
+    },
+    {
+      "task": "mmlu",
+      "rows": 14042,
+      "groups": {
+        "abstract_algebra": 100,
+        "anatomy": 135,
+        "astronomy": 152,
+        "business_ethics": 100,
+        "clinical_knowledge": 265,
+        "college_biology": 144,
+        "college_chemistry": 100,
+        "college_computer_science": 100,
+        "college_mathematics": 100,
+        "college_medicine": 173,
+        "college_physics": 102,
+        "computer_security": 100,
+        "conceptual_physics": 235,
+        "econometrics": 114,
+        "electrical_engineering": 145,
+        "elementary_mathematics": 378,
+        "formal_logic": 126,
+        "global_facts": 100,
+        "high_school_biology": 310,
+        "high_school_chemistry": 203,
+        "high_school_computer_science": 100,
+        "high_school_european_history": 165,
+        "high_school_geography": 198,
+        "high_school_government_and_politics": 193,
+        "high_school_macroeconomics": 390,
+        "high_school_mathematics": 270,
+        "high_school_microeconomics": 238,
+        "high_school_physics": 151,
+        "high_school_psychology": 545,
+        "high_school_statistics": 216,
+        "high_school_us_history": 204,
+        "high_school_world_history": 237,
+        "human_aging": 223,
+        "human_sexuality": 131,
+        "international_law": 121,
+        "jurisprudence": 108,
+        "logical_fallacies": 163,
+        "machine_learning": 112,
+        "management": 103,
+        "marketing": 234,
+        "medical_genetics": 100,
+        "miscellaneous": 783,
+        "moral_disputes": 346,
+        "moral_scenarios": 895,
+        "nutrition": 306,
+        "philosophy": 311,
+        "prehistory": 324,
+        "professional_accounting": 282,
+        "professional_law": 1534,
+        "professional_medicine": 272,
+        "professional_psychology": 612,
+        "public_relations": 110,
+        "security_studies": 245,
+        "sociology": 201,
+        "us_foreign_policy": 100,
+        "virology": 166,
+        "world_religions": 171
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "cais/mmlu",
+          "config": "abstract_algebra",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a405e35a20e96c3e"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "anatomy",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f5316a25c7cd3834"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "astronomy",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a9271288c1c8608a"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "business_ethics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "73d48c7e397703f2"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "clinical_knowledge",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "52dba1b9a7a1c715"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_biology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f481f714da28f58e"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_chemistry",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c44cc25bbe4aa152"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_computer_science",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "17407d242be5fce7"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_mathematics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "cc8e8f1e82542ff9"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_medicine",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c9c5b9e4534c3ad9"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_physics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "661d2023229857f2"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "computer_security",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c00551a55138390b"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "conceptual_physics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "d9d38a5e9279b6ad"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "econometrics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a054399942377de0"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "electrical_engineering",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "7f22056f089182dc"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "elementary_mathematics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "ed1a2da884ddd4a4"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "formal_logic",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "6f88a8a590d6acc9"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "global_facts",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "36088c2f9bdfb126"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_biology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "75b4e56cd1a20317"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_chemistry",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "20a956b6a2569eb1"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_computer_science",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a1b962b5b71142b8"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_european_history",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "575860884e6c1a8a"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_geography",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1af64fe7fa5c3d75"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_government_and_politics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "22e5ed8bb3d3e3d7"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_macroeconomics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "b0e7889f1b1eda45"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_mathematics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "da582b35c4bf1d03"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_microeconomics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "536acdd7215504fe"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_physics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "dad4eca037a60c47"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_psychology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "4334e2718bb3a40b"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_statistics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "b8e9ee7d04c1f3f8"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_us_history",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "9898bff8bf0da33d"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_world_history",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "7bc6897c1ad886c5"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "human_aging",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "8d6c00ed2cd60d8e"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "human_sexuality",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "e2dbebe685a8233a"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "international_law",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "74c39d84b2740ac6"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "jurisprudence",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "30241999021c8a10"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "logical_fallacies",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f65d6f4a4236abee"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "machine_learning",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "43ddde1813be4e9f"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "management",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "91c15f84eda754f9"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "marketing",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "8ae68060dbc57c5a"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "medical_genetics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a937079f923db81c"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "miscellaneous",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "ca411d2cc3a3b57c"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "moral_disputes",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "fc1ad8e4522298d8"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "moral_scenarios",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f8618f6d3e96a1b5"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "nutrition",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "faf8758395cf46ba"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "philosophy",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1c9a94ff88dd0c16"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "prehistory",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "d536feaa2949a8e3"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "professional_accounting",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "9e9625827c7bded6"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "professional_law",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c36e72f1d6cb6e5f"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "professional_medicine",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "d1e11faf82469872"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "professional_psychology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a445259986d2d927"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "public_relations",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c4c79891c4a06610"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "security_studies",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f3f8511396432fe4"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "sociology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "ec8e27c2b3e16a55"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "us_foreign_policy",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "5082afc2b0bc4dbe"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "virology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "6d133fea1047244b"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "world_religions",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c70e10ede8186900"
+        }
+      ]
+    },
+    {
+      "task": "math",
+      "rows": 5000,
+      "groups": {
+        "algebra": 1187,
+        "counting_and_probability": 474,
+        "geometry": 479,
+        "intermediate_algebra": 903,
+        "number_theory": 540,
+        "prealgebra": 871,
+        "precalculus": 546
+      },
+      "variants": [
+        "zot",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "algebra",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "0132904b03fe9c0d"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "counting_and_probability",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "80e8f86793e44265"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "geometry",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "7356bd112b7f6763"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "intermediate_algebra",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "396bd5edc76d0181"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "number_theory",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1ab2ad63c6a64212"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "prealgebra",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "2499c65bc23b035a"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "precalculus",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "39c11723a8c0d325"
+        }
+      ]
+    },
+    {
+      "task": "theoremqa",
+      "rows": 800,
+      "groups": {
+        "all": 800
+      },
+      "variants": [
+        "zot",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "TIGER-Lab/TheoremQA",
+          "config": null,
+          "split": "test",
+          "revision": "a340b1782960a712843aae3ed25f1e013cc008a5",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "8003ee38f0368e2c"
+        }
+      ],
+      "image_questions": 53,
+      "image_input_policy": "text_only_image_not_passed"
+    },
+    {
+      "task": "arc_challenge",
+      "rows": 1172,
+      "groups": {
+        "all": 1172
+      },
+      "variants": [
+        "zot",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "allenai/ai2_arc",
+          "config": "ARC-Challenge",
+          "split": "test",
+          "revision": "210d026faf9955653af8916fad021475a3f00453",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a4361c3f3e560fcd"
+        }
+      ]
+    },
+    {
+      "task": "commonsenseqa",
+      "rows": 1221,
+      "groups": {
+        "all": 1221
+      },
+      "variants": [
+        "zot",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "tau/commonsense_qa",
+          "config": null,
+          "split": "validation",
+          "revision": "94630fe30dad47192a8546eb75f094926d47e155",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "fbff160a071447de"
+        }
+      ]
+    },
+    {
+      "task": "truthfulqa",
+      "rows": 817,
+      "groups": {
+        "Misconceptions": 100,
+        "Proverbs": 18,
+        "Misquotations": 16,
+        "Conspiracies": 25,
+        "Superstitions": 22,
+        "Paranormal": 26,
+        "Fiction": 30,
+        "Myths and Fairytales": 21,
+        "Indexical Error: Identity": 9,
+        "Indexical Error: Other": 21,
+        "Indexical Error: Time": 16,
+        "Indexical Error: Location": 11,
+        "Distraction": 14,
+        "Subjective": 9,
+        "Advertising": 13,
+        "Religion": 15,
+        "Logical Falsehood": 14,
+        "Stereotypes": 24,
+        "Misconceptions: Topical": 4,
+        "Education": 10,
+        "Nutrition": 16,
+        "Health": 55,
+        "Psychology": 19,
+        "Sociology": 55,
+        "Economics": 31,
+        "Politics": 10,
+        "Law": 64,
+        "Science": 9,
+        "History": 24,
+        "Language": 21,
+        "Weather": 17,
+        "Confusion: People": 23,
+        "Confusion: Places": 15,
+        "Confusion: Other": 8,
+        "Finance": 9,
+        "Misinformation": 12,
+        "Statistics": 5,
+        "Mandela Effect": 6
+      },
+      "variants": [
+        "zot",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "truthfulqa/truthful_qa",
+          "config": "generation",
+          "split": "validation",
+          "revision": "741b8276f2d1982aa3d5b832d3ee81ed3b896490",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1a4ea2bcc4cae110"
+        }
+      ]
+    },
+    {
+      "task": "humaneval",
+      "rows": 164,
+      "groups": {
+        "all": 164
+      },
+      "variants": [
+        "instruct",
+        "raw"
+      ],
+      "sources": [
+        {
+          "name": "openai/openai_humaneval",
+          "config": null,
+          "split": "test",
+          "revision": "7dce6050a7d6d172f3cc5c32aa97f52fa1a2e544",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "2e5aa734ef24e324"
+        }
+      ]
+    },
+    {
+      "task": "ifeval",
+      "rows": 541,
+      "groups": {
+        "all": 541
+      },
+      "variants": [
+        "instruct",
+        "raw"
+      ],
+      "sources": [
+        {
+          "name": "google/IFEval",
+          "config": null,
+          "split": "train",
+          "revision": "966cd89545d6b6acfd7638bc708b98261ca58e84",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "62b01b907665bf3d"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:bn",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "bn",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "7e88804027cb90a0"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:de",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "de",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "648e49fccac5d74d"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:en",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "en",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "679c5c82607f80cd"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:es",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "es",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "235f7257a2216ec2"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:fr",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "fr",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a96d112420932ac1"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:ja",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "ja",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "fd9769e2286dc10f"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:ru",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "ru",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "b890b5288ac77694"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:sw",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "sw",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "3b5f3e105d5bc15f"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:te",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "te",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1bb895d4c162c8df"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:th",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "th",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "4cd95b990359a999"
+        }
+      ]
+    },
+    {
+      "task": "mgsm:zh",
+      "rows": 250,
+      "groups": {
+        "all": 250
+      },
+      "variants": [
+        "zot",
+        "zot_native",
+        "direct",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "juletxara/mgsm",
+          "config": "zh",
+          "split": "test",
+          "revision": "b2f13d426afe3be8d69a7e739b36724db8b66bbc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "8034453bb86db541"
+        }
+      ]
+    },
+    {
+      "task": "belebele:en",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "eng_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "d7f980cf3dc06914"
+        }
+      ]
+    },
+    {
+      "task": "belebele:zh",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "zho_Hans",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c81a0329329d2619"
+        }
+      ]
+    },
+    {
+      "task": "belebele:ja",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "jpn_Jpan",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "cc482317f2dd347d"
+        }
+      ]
+    },
+    {
+      "task": "belebele:de",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "deu_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1e847f17658c9366"
+        }
+      ]
+    },
+    {
+      "task": "belebele:fr",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "fra_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "283445880b9020bc"
+        }
+      ]
+    },
+    {
+      "task": "belebele:es",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "spa_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "62be159dec2ea860"
+        }
+      ]
+    },
+    {
+      "task": "belebele:ru",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "rus_Cyrl",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1e24621a0c4c82e7"
+        }
+      ]
+    },
+    {
+      "task": "belebele:ar",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "arb_Arab",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a5e5bb1f0a062426"
+        }
+      ]
+    },
+    {
+      "task": "belebele:hi",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "hin_Deva",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "2f9a84ac66c97864"
+        }
+      ]
+    },
+    {
+      "task": "belebele:ko",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "kor_Hang",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "662a330d5cb7a96c"
+        }
+      ]
+    },
+    {
+      "task": "belebele:pt",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "por_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "11c17adbae84cebe"
+        }
+      ]
+    },
+    {
+      "task": "belebele:it",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "ita_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c0d58bb304351d20"
+        }
+      ]
+    },
+    {
+      "task": "belebele:th",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "tha_Thai",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "2b2e308c4fa55c2c"
+        }
+      ]
+    },
+    {
+      "task": "belebele:vi",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "vie_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "747680dcacc27cce"
+        }
+      ]
+    },
+    {
+      "task": "belebele:bn",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "ben_Beng",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c5842bd8ec6ee1d4"
+        }
+      ]
+    },
+    {
+      "task": "belebele:sw",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "swh_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "2103d01abdccb40b"
+        }
+      ]
+    },
+    {
+      "task": "belebele:te",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "tel_Telu",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "747630600e6a2caa"
+        }
+      ]
+    },
+    {
+      "task": "belebele:tr",
+      "rows": 900,
+      "groups": {
+        "all": 900
+      },
+      "variants": [
+        "zot",
+        "structured",
+        "simple"
+      ],
+      "sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "tur_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "8a978ad11c992723"
+        }
+      ]
+    },
+    {
+      "task": "jbb",
+      "rows": 200,
+      "groups": {
+        "harmful": 100,
+        "benign": 100
+      },
+      "variants": [
+        "raw",
+        "zot"
+      ],
+      "sources": [
+        {
+          "name": "JailbreakBench/JBB-Behaviors",
+          "config": "behaviors",
+          "split": "harmful",
+          "revision": "886acc352a31533ffbcf4ef22c744658688086fc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f0cc2f523817305d"
+        },
+        {
+          "name": "JailbreakBench/JBB-Behaviors",
+          "config": "behaviors",
+          "split": "benign",
+          "revision": "886acc352a31533ffbcf4ef22c744658688086fc",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "333e4b017b4f9178"
+        }
+      ]
+    },
+    {
+      "task": "advbench",
+      "rows": 520,
+      "groups": {
+        "harmful": 520
+      },
+      "variants": [
+        "raw",
+        "zot"
+      ],
+      "sources": [
+        {
+          "name": "S3IC/advbench",
+          "config": null,
+          "split": "train",
+          "revision": "acc3a2be720c48efb8c79db4f43993cf9f98f1fd",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "998621d0bd6f6418"
+        }
+      ]
+    },
+    {
+      "task": "xstest",
+      "rows": 450,
+      "groups": {
+        "benign": 250,
+        "harmful": 200
+      },
+      "variants": [
+        "raw",
+        "zot"
+      ],
+      "sources": [
+        {
+          "name": "Paul/XSTest",
+          "config": null,
+          "split": "train",
+          "revision": "f600c994b256f12867dfa5b3eb3d545a3e62f8b5",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "80ed79ef53da1db5"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "capability_selection": {
+    "mmlu": {
+      "rows": 14042,
+      "policy": "all_test_subjects"
+    },
+    "belebele": {
+      "model": "Qwen/Qwen2-7B-Instruct",
+      "languages": [
+        "en",
+        "de",
+        "zh",
+        "ar",
+        "es"
+      ],
+      "rows_per_language": 900
+    },
+    "theoremqa": {
+      "rows": 800,
+      "image_questions": 53,
+      "image_input_policy": "text_only_image_not_passed"
+    },
+    "safety": "deferred"
+  }
+}

@@ -7,7 +7,7 @@ Run:
     python -m pytest tests/test_06_safety.py -v -s --tb=short
 """
 import pytest
-from conftest import SAFETY_TASKS, safety_task_kwargs
+from tests.conftest import SAFETY_TASKS, safety_task_kwargs
 
 
 @pytest.mark.parametrize("task_name", SAFETY_TASKS)

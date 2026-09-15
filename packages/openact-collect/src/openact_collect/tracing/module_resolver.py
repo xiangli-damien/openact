@@ -70,3 +70,22 @@ def resolve_mlp_module(layer: Any) -> Optional[Any]:
         if hasattr(layer, name):
             return getattr(layer, name)
     return None
+
+
+def find_final_norm(model: Any) -> Any:
+    """Resolve the final norm, not a decoder block's internal RMSNorm."""
+    for chain in (
+        ('model', 'norm'),  # Llama, Mistral, Qwen2/3, Gemma
+        ('transformer', 'ln_f'),  # GPT-2, GPT-J, Falcon
+        ('gpt_neox', 'final_layer_norm'),
+        ('model', 'final_layernorm'),  # Phi
+        ('model', 'decoder', 'final_layer_norm'),  # OPT
+        ('transformer', 'norm_f'),  # MPT
+    ):
+        module = _getattr_chain(model, chain)
+        if module is not None and hasattr(module, 'register_forward_hook'):
+            return module
+    raise ValueError(
+        'Could not locate the final normalization module. Extend find_final_norm() '
+        'for this architecture or disable final_norm capture explicitly.'
+    )

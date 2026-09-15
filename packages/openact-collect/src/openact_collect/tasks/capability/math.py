@@ -1,7 +1,7 @@
 import logging
 from typing import Iterator, List, Optional
 
-from openact_collect.data import HFDatasetSpec, load_hf_dataset
+from openact_collect.data import HFDatasetSpec
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
 
@@ -18,68 +18,13 @@ CATEGORIES = [
 ]
 LEVELS = [1, 2, 3, 4, 5]
 def _extract_boxed_from_solution(text: str) -> Optional[str]:
-    depth = 0
-    start = None
-    i = 0
-    while i < len(text):
-        if text[i : i + 7] == "\\boxed{":
-            if depth == 0:
-                start = i + 7
-            depth += 1
-            i += 7
-        elif text[i] == "{":
-            depth += 1
-            i += 1
-        elif text[i] == "}":
-            depth -= 1
-            if depth == 0 and start is not None:
-                return text[start:i]
-            i += 1
-        else:
-            i += 1
-    return None
+    from openact_core.tasks.parsers.base import extract_boxed
+    return extract_boxed(text)
+
+
 _ELEUTHERAI_SOURCE = "EleutherAI/hendrycks_math"
 
 
-def _load_eleutherai(split: str, categories: List[str]) -> list:
-    """Load MATH categories from the canonical EleutherAI dataset.
-
-    We try to load each category independently so one missing config does not
-    sink the entire run.
-    """
-
-    items: list = []
-    failed: List[str] = []
-    for cat in categories:
-        try:
-            ds = load_hf_dataset(HFDatasetSpec(name=_ELEUTHERAI_SOURCE, config=cat, split=split))
-            for row in ds:
-                row["_category"] = cat
-                items.append(row)
-        except Exception as exc:  # noqa: BLE001
-            failed.append(cat)
-            logger.warning("MATH: failed to load category '%s' (%s). Skipping.", cat, exc)
-            continue
-    if failed and items:
-        logger.warning("MATH: loaded %d categories, skipped %d.", len(categories) - len(failed), len(failed))
-    return items
-
-
-_FALLBACK_SOURCES = [
-    "DigitalLearningGmbH/MATH-lighteval",
-    "lighteval/MATH-Hard",
-    "hendrycks/competition_math",
-]
-
-
-def _load_fallback(split: str) -> list:
-    for hf_id in _FALLBACK_SOURCES:
-        try:
-            ds = load_hf_dataset(HFDatasetSpec(name=hf_id, split=split))
-            return list(ds)
-        except Exception:
-            continue
-    return []
 @TaskRegistry.register("math")
 class MATHTask(Task):
     task_name = "math"
@@ -105,14 +50,12 @@ class MATHTask(Task):
     def _load_dataset(self):
         if self._raw_items is not None:
             return
-        items = _load_eleutherai(self.split, self.categories)
-        if not items:
-            items = _load_fallback(self.split)
-        if not items:
-            raise RuntimeError(
-                "Could not load the MATH dataset from any known source. "
-                "Please check your network / HuggingFace token."
-            )
+        items = []
+        for category in self.categories:
+            # A missing category is a failed benchmark load, not permission to
+            # substitute MATH-Hard or silently evaluate a partial dataset.
+            dataset = self.load_hf_dataset(HFDatasetSpec(name=self.source, config=category, split=self.split))
+            items.extend(dict(row, _category=category) for row in dataset)
         self._raw_items = items
 
     def estimate_size(self) -> Optional[int]:

@@ -1,6 +1,6 @@
 from typing import Iterator, List, Optional
 
-from openact_collect.data import HFDatasetSpec, load_hf_dataset
+from openact_collect.data import HFDatasetSpec
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
 ALL_SUBJECTS = [
@@ -47,7 +47,7 @@ class MMLUTask(Task):
         self._datasets = {}
     def _load_subject(self, subject: str):
         if subject not in self._datasets:
-            self._datasets[subject] = load_hf_dataset(
+            self._datasets[subject] = self.load_hf_dataset(
                 HFDatasetSpec(name="cais/mmlu", config=subject, split=self.split)
             )
 

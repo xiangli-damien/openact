@@ -79,7 +79,7 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
     ),
     "commonsenseqa": TaskDescriptor(
         name="commonsenseqa",
-        source="commonsense_qa",
+        source="tau/commonsense_qa",
         parser_type="mc5",
         matcher_type="exact",
         default_split="validation",
@@ -98,7 +98,7 @@ TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
     ),
     "truthfulqa": TaskDescriptor(
         name="truthfulqa",
-        source="truthful_qa",
+        source="truthfulqa/truthful_qa",
         parser_type="freeform",
         matcher_type="exact",
         eval_strategy=EVAL_LLM_JUDGE,

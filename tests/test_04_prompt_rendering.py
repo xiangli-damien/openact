@@ -12,7 +12,7 @@ Run:
 """
 import re
 import pytest
-from conftest import MONO_TASKS, MGSM_LANGS, BELEBELE_LANGS, safety_task_kwargs
+from tests.conftest import MONO_TASKS, MGSM_LANGS, BELEBELE_LANGS, safety_task_kwargs
 
 
 def _box(title, text, width=76):

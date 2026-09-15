@@ -117,6 +117,7 @@ class StatsSpec:
 @dataclass
 class CaptureConfig:
     hidden_states: bool = True
+    final_norm: bool = False  # Legacy runs did not capture this separately.
     hidden_states_layers: Optional[List[int]] = None
     hidden_states_dtype: str = 'float16'
     save_per_token: bool = True

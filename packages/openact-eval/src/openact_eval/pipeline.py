@@ -54,6 +54,7 @@ class EvalPipeline:
         )
         if self.save_labels:
             path = self._result.save_labels(self.run_path, self.label_name)
+            self.run.refresh_labels()
             self._result.evaluator_config["label_path"] = path
         self._metrics = compute_metrics(self._result)
         return self._result

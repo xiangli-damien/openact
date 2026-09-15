@@ -3,7 +3,6 @@ from typing import Iterator, Optional
 from openact_collect.tasks.base import Task, TaskItem
 from openact_collect.tasks.registry import TaskRegistry
 
-_MGSM_TSV_BASE = "https://huggingface.co/datasets/juletxara/mgsm/resolve/main"
 MGSM_LANGUAGES = [
     "bn", "de", "en", "es", "fr", "ja", "ru", "sw", "te", "th", "zh"
 ]
@@ -35,16 +34,8 @@ class MGSMTask(Task):
         self._dataset = None
     def _load_dataset(self):
         if self._dataset is None:
-            from datasets import load_dataset
-
-            url = f"{_MGSM_TSV_BASE}/mgsm_{self.language}.tsv"
-            self._dataset = load_dataset(
-                "csv",
-                data_files=url,
-                delimiter="\t",
-                column_names=["question", "answer"],
-                split="train",
-            )
+            from openact_collect.data import HFDatasetSpec
+            self._dataset = self.load_hf_dataset(HFDatasetSpec(name=self.source, config=self.language, split=self.split))
 
     def estimate_size(self) -> Optional[int]:
         self._load_dataset()

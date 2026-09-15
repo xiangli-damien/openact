@@ -1,5 +1,4 @@
 import logging
-import warnings
 from typing import Any, Dict, List, Optional, Set, Tuple
 import numpy as np
 from transformers import PreTrainedTokenizerBase
@@ -55,11 +54,7 @@ class OffsetCalculator:
         if validate and offsets is not None:
             validation = self._validate_offsets(text, token_ids, offsets)
             if not validation["is_valid"]:
-                warnings.warn(
-                    f"Offset validation failed ({method_used}): "
-                    f"{validation['errors'][:3]}",
-                    UserWarning,
-                )
+                raise ValueError(f"Offset validation failed ({method_used}): {validation['errors'][:3]}")
         return offsets
     def _method_native_offset_mapping(
         self, text: str, token_ids: List[int]
@@ -103,57 +98,41 @@ class OffsetCalculator:
     def _method_incremental_decode(
         self, text: str, token_ids: List[int], max_search: int
     ) -> Optional[np.ndarray]:
-        n_tokens = len(token_ids)
-        offsets = np.zeros((n_tokens, 2), dtype=np.int32)
-        content_ids = []
-        content_map = []
-        for i, tid in enumerate(token_ids):
-            if tid not in self._special_ids:
-                content_ids.append(tid)
-                content_map.append(i)
-        prev_decoded = ""
-        char_pos = 0
-        content_offsets = np.zeros((len(content_ids), 2), dtype=np.int32)
-        for ci in range(len(content_ids)):
-            current_decoded = self.tokenizer.decode(
-                content_ids[: ci + 1],
-                skip_special_tokens=False,
-                clean_up_tokenization_spaces=False,
-            )
-            new_text = current_decoded[len(prev_decoded) :]
-            new_len = len(new_text)
-            if new_len > 0:
-                search_start = max(0, char_pos - max_search)
-                search_end = min(len(text), char_pos + max_search + new_len)
-                found_pos = text.find(new_text, search_start, search_end)
-                if found_pos != -1:
-                    content_offsets[ci, 0] = found_pos
-                    content_offsets[ci, 1] = found_pos + new_len
-                    char_pos = found_pos + new_len
-                else:
-                    content_offsets[ci, 0] = char_pos
-                    content_offsets[ci, 1] = min(char_pos + new_len, len(text))
-                    char_pos = content_offsets[ci, 1]
+        del max_search
+        # Re-tokenization may change generated token boundaries. Decode actual
+        # prefixes, matching only from the start; substring search corrupts
+        # repeated text and incomplete UTF-8 tokens.
+        decoded = self.tokenizer.decode(token_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+        if decoded != text:
+            raise ValueError('Response text does not match the stored token IDs')
+        offsets = np.zeros((len(token_ids), 2), dtype=np.int32)
+        previous_end = 0
+        pending = []
+        for index, token_id in enumerate(token_ids):
+            if token_id in self._special_ids:
+                offsets[index] = (previous_end, previous_end)
+                continue
+            pending.append(index)
+            prefix = self.tokenizer.decode(token_ids[:index + 1], skip_special_tokens=True, clean_up_tokenization_spaces=False)
+            end = 0
+            for actual, expected in zip(prefix, text):
+                if actual != expected:
+                    break
+                end += 1
+            # SentencePiece can temporarily replace an entire byte run with
+            # replacement characters when its next code point is incomplete.
+            # Keep the prefix already verified against the final decoded text.
+            end = max(previous_end, end)
+            if end > previous_end:
+                # Several byte tokens can jointly encode a single character.
+                for pending_index in pending:
+                    offsets[pending_index] = (previous_end, end)
+                pending.clear()
+                previous_end = end
             else:
-                content_offsets[ci, 0] = char_pos
-                content_offsets[ci, 1] = char_pos
-            prev_decoded = current_decoded
-        ci = 0
-        prev_end = 0
-        for i in range(n_tokens):
-            if token_ids[i] in self._special_ids:
-                offsets[i, 0] = prev_end
-                offsets[i, 1] = prev_end
-            else:
-                if ci < len(content_offsets):
-                    offsets[i, 0] = content_offsets[ci, 0]
-                    offsets[i, 1] = content_offsets[ci, 1]
-                    prev_end = content_offsets[ci, 1]
-                    ci += 1
-                else:
-                    offsets[i, 0] = prev_end
-                    offsets[i, 1] = prev_end
+                offsets[index] = (previous_end, previous_end)
         return offsets
+
     def _validate_offsets(
         self, text: str, token_ids: List[int], offsets: np.ndarray
     ) -> Dict[str, Any]:
