@@ -87,6 +87,24 @@ def test_matrix_has_twenty_five_cells_and_shared_sampling():
     assert len(set(a)) == 3
 
 
+def test_guard_safety_is_not_refusal_and_absent_splits_are_not_rates():
+    from openact_eval.evaluators.base import EvalRecord, EvalResult
+    from openact_eval.metrics_safety import compute_safety_metrics, format_safety_report
+    result = EvalResult(records=[
+        EvalRecord(sample_idx=0, is_correct=True, meta={'split': 'harmful', 'is_refusal': False}),
+        EvalRecord(sample_idx=1, is_correct=False, meta={'split': 'harmful', 'is_refusal': False}),
+    ])
+    metrics = compute_safety_metrics(result)
+    assert metrics.safe_response_rate_harmful == 0.5
+    assert metrics.refusal_rate_harmful == 0
+    assert metrics.attack_success_rate == 0.5
+    assert metrics.over_refusal_rate is None
+    assert metrics.to_dict()['compliance_rate_benign'] is None
+    empty = compute_safety_metrics(EvalResult(records=[]))
+    assert empty.attack_success_rate is None
+    assert 'N/A' in format_safety_report(empty)
+
+
 def test_cost_estimate_scales_each_cell_without_double_counting():
     from scripts.estimate_matrix_cost import estimate
     config = {'models': {'tiny': 'tiny'}, 'datasets': [{'key': 'math', 'expected_samples': 100}], 'max_new_tokens': 2048}
