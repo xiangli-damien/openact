@@ -70,7 +70,8 @@ alpha = 1.0
 target_far = 0.10
 
 [safety_judge]
-identifier = "meta-llama/LlamaGuard-7b"
-version_status = "provisional"
+identifier = "meta-llama/Llama-Guard-3-8B"
+revision = "7327bd9f6efbbe6101dc6cc4736302b3cbb6e425"
+version_status = "confirmed"
 dtype = "bfloat16"
 device_map = "auto"

@@ -23,6 +23,13 @@ class TaskDescriptor:
 
 
 TASK_DESCRIPTORS: Dict[str, TaskDescriptor] = {
+    "wildjailbreak": TaskDescriptor(
+        name="wildjailbreak", source="allenai/wildjailbreak",
+        parser_type="refusal", eval_strategy=EVAL_SAFETY,
+        default_split="harmful", default_template="zot",
+        available_templates=("raw", "zot"), task_type="safety",
+        is_safety=True, domain="safety",
+    ),
     "gsm8k": TaskDescriptor(
         name="gsm8k",
         source="openai/gsm8k",

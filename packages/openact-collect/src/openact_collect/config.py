@@ -23,7 +23,7 @@ def load_run_config(path: str) -> Dict[str, Any]:
         'capture': set(CaptureSpec.__dataclass_fields__),
         'generation': set(GenerationSpec.__dataclass_fields__),
         'analysis': {'execution', 'device', 'representations', 'normalize_hidden_states', 'seed', 'gmm', 'alignment', 'split', 'smoothing', 'monitoring'},
-        'safety_judge': {'identifier', 'version_status', 'dtype', 'device_map'},
+        'safety_judge': {'identifier', 'revision', 'version_status', 'dtype', 'device_map'},
     }
     for section, fields in section_fields.items():
         values = config.get(section, {})

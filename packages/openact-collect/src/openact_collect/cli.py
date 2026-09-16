@@ -43,7 +43,7 @@ def _build_task_kwargs(args: argparse.Namespace) -> Dict[str, Any]:
     if getattr(args, 'dataset_revision', None):
         task_kwargs['dataset_revision'] = args.dataset_revision
     task_name = str(getattr(args, 'task', '')).lower()
-    if task_name in ('jbb', 'advbench', 'xstest'):
+    if task_name in ('jbb', 'advbench', 'xstest', 'wildjailbreak'):
         try:
             from openact_collect.tasks.safety.cli_extension import resolve_safety_task_kwargs
             task_kwargs.update(resolve_safety_task_kwargs(args))

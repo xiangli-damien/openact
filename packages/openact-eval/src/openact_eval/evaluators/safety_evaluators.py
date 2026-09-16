@@ -115,7 +115,7 @@ class SafetyEvaluator(Evaluator):
 
 @EvaluatorRegistry.register('llamaguard')
 class LlamaGuardEvaluator(SafetyEvaluator):
-    def __init__(self, model_name: str = 'meta-llama/Llama-Guard-3-8B', device_map: str = 'auto', dtype: str = 'auto', max_new_tokens: int = 32, label_request: bool = False, refusal_scan_chars: int = 600):
+    def __init__(self, model_name: str = 'meta-llama/Llama-Guard-3-8B', device_map: str = 'auto', dtype: str = 'auto', max_new_tokens: int = 32, label_request: bool = False, refusal_scan_chars: int = 600, revision: Optional[str] = None):
         self.model_name = model_name
         self.device_map = device_map
         self.dtype_str = dtype
@@ -124,6 +124,7 @@ class LlamaGuardEvaluator(SafetyEvaluator):
         self.refusal_scan_chars = refusal_scan_chars
         self._model = None
         self._tokenizer = None
+        self.revision = revision
 
     @property
     def name(self) -> str:
@@ -133,9 +134,10 @@ class LlamaGuardEvaluator(SafetyEvaluator):
     def setup(self) -> None:
         from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
         dtype = _resolve_dtype(self.dtype_str)
-        config = AutoConfig.from_pretrained(self.model_name, trust_remote_code=True)
-        self._tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True)
-        self._model = AutoModelForCausalLM.from_pretrained(self.model_name, config=config, torch_dtype=dtype, device_map=self.device_map, trust_remote_code=True)
+        config = AutoConfig.from_pretrained(self.model_name, trust_remote_code=True, revision=self.revision)
+        self.revision = getattr(config, '_commit_hash', None) or self.revision
+        self._tokenizer = AutoTokenizer.from_pretrained(self.model_name, trust_remote_code=True, revision=self.revision)
+        self._model = AutoModelForCausalLM.from_pretrained(self.model_name, config=config, torch_dtype=dtype, device_map=self.device_map, trust_remote_code=True, revision=self.revision)
         self._model.eval()
         if self._tokenizer.pad_token_id is None:
             self._tokenizer.pad_token = self._tokenizer.eos_token
@@ -195,6 +197,7 @@ class LlamaGuardEvaluator(SafetyEvaluator):
         return {
             'evaluator_class': self.__class__.__name__,
             'model_name': self.model_name,
+            'revision': self.revision,
             'device_map': self.device_map,
             'dtype': self.dtype_str,
             'max_new_tokens': self.max_new_tokens,

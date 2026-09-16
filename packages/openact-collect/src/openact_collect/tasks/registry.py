@@ -44,7 +44,7 @@ class TaskRegistry:
         if name in cls._tasks:
             return
         name_lower = name.lower()
-        if name_lower in ("jbb", "advbench", "xstest"):
+        if name_lower in ("jbb", "advbench", "xstest", "wildjailbreak"):
             cls._load_safety_tasks()
         else:
             cls._load_capability_tasks()
@@ -64,7 +64,7 @@ class TaskRegistry:
             return
         cls._loaded_modules.add("safety")
         try:
-            from openact_collect.tasks.safety import jbb, advbench, xstest  # noqa: F401
+            from openact_collect.tasks.safety import jbb, advbench, xstest, wildjailbreak  # noqa: F401
         except ImportError:
             pass
     @classmethod

@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
-.venv/
+.venv
 venv/
 ENV/
 .env

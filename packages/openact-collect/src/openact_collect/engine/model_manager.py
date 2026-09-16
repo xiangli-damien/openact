@@ -29,6 +29,7 @@ class GenerationResult:
     token_ids: List[int]
     keep_indices: List[int]
     traces: Optional[ActivationTrace] = None
+    effective_max_new_tokens: Optional[int] = None
 
 
 class ModelRunner:
@@ -229,6 +230,13 @@ class ModelRunner:
         if input_ids.ndim != 2 or input_ids.shape[0] != 1 or input_ids.shape[1] == 0:
             raise ValueError('Collection supports one nonempty prompt per generation')
         input_length = int(input_ids.shape[1])
+        max_new_tokens = int(gen_spec.max_new_tokens)
+        context_limit = getattr(self.config, 'max_position_embeddings', None) or getattr(self.config, 'n_positions', None)
+        if context_limit:
+            remaining = int(context_limit) - input_length
+            if remaining < 1:
+                raise ValueError(f'Prompt length {input_length} leaves no generation space in context limit {context_limit}')
+            max_new_tokens = min(max_new_tokens, remaining)
         do_sample = bool(gen_spec.do_sample) and gen_spec.temperature > 0
         if capture_spec is not None:
             capture_hidden_states = bool(capture_spec.hidden_states) if capture_hidden_states is None else bool(capture_hidden_states)
@@ -239,7 +247,7 @@ class ModelRunner:
         kwargs: Dict[str, Any] = {
             'input_ids': input_ids,
             'attention_mask': attention_mask,
-            'max_new_tokens': int(gen_spec.max_new_tokens),
+            'max_new_tokens': max_new_tokens,
             'do_sample': do_sample,
             'eos_token_id': self._terminator_ids or None,
             'pad_token_id': self.tokenizer.pad_token_id,
@@ -313,6 +321,9 @@ class ModelRunner:
             keep_indices, token_ids = self._build_keep_indices(hidden_states, generated_ids, generated_length)
         else:
             keep_indices, token_ids = [], list(generated_ids)
+        finish_reason = self._determine_finish_reason(generated_tokens, generated_length, max_new_tokens)
+        if finish_reason == 'length' and max_new_tokens < gen_spec.max_new_tokens:
+            finish_reason = 'context_length'
         return GenerationResult(
             input_ids=input_ids,
             generated_tokens=generated_tokens,
@@ -321,10 +332,11 @@ class ModelRunner:
             generated_length=generated_length,
             hidden_states=hidden_states,
             scores=scores,
-            finish_reason=self._determine_finish_reason(generated_tokens, generated_length, gen_spec.max_new_tokens),
+            finish_reason=finish_reason,
             token_ids=token_ids,
             keep_indices=keep_indices,
             traces=traces,
+            effective_max_new_tokens=max_new_tokens,
         )
 
     def _determine_finish_reason(self, generated_tokens: torch.Tensor, generated_length: int, max_tokens: int) -> str:
