@@ -130,3 +130,20 @@ mean that the original MATH-only completion estimate remains unchanged.
 The full machine-readable evidence, including exact token IDs and worker memory
 peaks, is in `reports/concurrency_benchmark.json`. The final nine scheduling and
 real-model MMLU integration tests also passed on the GPU host before launch.
+
+## Production launch observed
+
+The full MMLU job started in tmux `openact-mmlu-full` at **2026-09-16 15:31:23 UTC**,
+PID **87185**. At 15:32:16 UTC it was collecting the first 100-row Llama-3.2 shard,
+with a successful first sample and no errors. Its plan requires all 42,126 rows
+and confirms all 57 subject groups. The existing MATH process, PID **43096**, was
+simultaneously progressing through Llama-3.2 rows 3,100–3,199, without errors.
+
+All files in the original MATH job's code checksum manifest still matched; no
+running MATH package/launcher code was changed. The approximate 976-second
+benchmark pause is recorded separately on the GPU at
+`runs/math_full_20260916/events/concurrency_benchmark_pause_20260916.json`.
+
+This is a launch record, not a live status or full completion report. Both jobs
+continue independently of the SSH connection. Runtime state is authoritative in
+each job's `job_status.json`, log, verified shard directories, and final `_SUCCESS`.
