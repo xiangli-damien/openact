@@ -68,9 +68,11 @@ class ZarrWriter:
             if self.capture_spec.save_per_token:
                 self._arrays['hs_per_token'] = hidden_states.require_dataset('per_token', shape=(0, effective_layers, hidden_dim), chunks=(chunk_t, chunk_l, chunk_h), dtype=hs_dtype, compressor=compressor)
             if self.capture_spec.save_mean_states:
-                self._arrays['hs_mean'] = hidden_states.require_dataset('mean', shape=(n_samples, effective_layers, hidden_dim), chunks=(min(64, max(1, n_samples)), max(1, effective_layers), max(1, hidden_dim)), dtype='float32', compressor=compressor)
+                # Samples are written individually. A 64-row all-layer chunk
+                # would repeatedly read/recompress tens of MB for each new row.
+                self._arrays['hs_mean'] = hidden_states.require_dataset('mean', shape=(n_samples, effective_layers, hidden_dim), chunks=(1, max(1, effective_layers), max(1, hidden_dim)), dtype='float32', compressor=compressor)
             if self.capture_spec.save_prompt_last:
-                self._arrays['hs_prompt_last'] = hidden_states.require_dataset('prompt_last', shape=(n_samples, effective_layers, hidden_dim), chunks=(min(64, max(1, n_samples)), max(1, effective_layers), max(1, hidden_dim)), dtype='float32', compressor=compressor)
+                self._arrays['hs_prompt_last'] = hidden_states.require_dataset('prompt_last', shape=(n_samples, effective_layers, hidden_dim), chunks=(1, max(1, effective_layers), max(1, hidden_dim)), dtype='float32', compressor=compressor)
             if self.capture_spec.final_norm:
                 norm = self._root.require_group('final_norm')
                 norm.attrs['token_alignment'] = 'response_token'
@@ -200,13 +202,13 @@ class ZarrWriter:
             return
         sample_ptr = self._arrays.get('sample_ptr')
         if sample_ptr is not None:
-            last_value = int(sample_ptr[0]) if len(sample_ptr) else 0
-            for index in range(len(sample_ptr)):
-                current_value = int(sample_ptr[index])
-                if current_value < 0:
-                    sample_ptr[index] = last_value
-                else:
-                    last_value = current_value
+            # One bulk read, rather than one NFS chunk read per sample.
+            values = sample_ptr[:]
+            missing = values < 0
+            if np.any(missing):
+                previous = np.maximum.accumulate(np.where(~missing, np.arange(len(values)), 0))
+                values[missing] = values[previous[missing]]
+                sample_ptr[:] = values
         try:
             zarr.consolidate_metadata(str(self.zarr_path))
         except Exception:
