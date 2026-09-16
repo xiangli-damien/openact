@@ -79,6 +79,12 @@ class ParserEvaluator(Evaluator):
         return self._parser
 
     def evaluate_sample(self, sample: Sample) -> EvalRecord:
+        if self.task_name.lower() == 'theoremqa' and 'answer_type' not in self._parser_kwargs:
+            # A dataset contains mixed answer types. Explicit --evaluator parser
+            # must use each row's type just like auto-selection does.
+            if not hasattr(self, '_theoremqa_evaluator'):
+                self._theoremqa_evaluator = TheoremQAEvaluator()
+            return self._theoremqa_evaluator.evaluate_sample(sample)
         ground_truth, ground_truth_source = _resolve_ground_truth(sample)
         response_text = sample.response_text or ''
         extracted = self._parser.extract(response_text)

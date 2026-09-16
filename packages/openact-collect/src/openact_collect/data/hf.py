@@ -8,10 +8,10 @@ Why this exists:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 DATASET_REVISIONS = json.loads(Path(__file__).with_name('dataset_versions.json').read_text())
 
@@ -26,6 +26,7 @@ class HFDatasetSpec:
     revision: Optional[str] = None
     streaming: bool = False
     cache_dir: Optional[str] = None
+    loader_kwargs: Dict[str, Any] = field(default_factory=dict)
 
 
 def load_hf_dataset(spec: HFDatasetSpec) -> Any:
@@ -48,6 +49,9 @@ def load_hf_dataset(spec: HFDatasetSpec) -> Any:
         kwargs["revision"] = revision
     if spec.cache_dir is not None:
         kwargs["cache_dir"] = spec.cache_dir
+    if set(spec.loader_kwargs) & {'path', 'name', 'split', 'revision', 'streaming', 'cache_dir'}:
+        raise ValueError('loader_kwargs cannot override dataset identity or split')
+    kwargs.update(spec.loader_kwargs)
 
     if spec.config is None:
         return load_dataset(spec.name, **kwargs)

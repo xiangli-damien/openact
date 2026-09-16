@@ -171,6 +171,7 @@ class CollectionRunner:
             'ground_truth': item.ground_truth,
             'finish_reason': result.finish_reason,
             'n_prompt_tokens': result.meta.get('n_prompt_tokens', 0),
+            'effective_max_new_tokens': result.meta.get('effective_max_new_tokens'),
             'n_response_tokens': len(result.token_ids),
             'processing_time': result.processing_time,
             'error_msg': result.error_msg,
@@ -345,6 +346,7 @@ class CollectionRunner:
                 'ground_truth': item.ground_truth,
                 'n_prompt_tokens': gen_result.input_length,
                 'prompt_token_ids': input_ids[0].tolist(),
+                'effective_max_new_tokens': gen_result.effective_max_new_tokens,
                 'language': getattr(item, 'language', 'en'),
             }
             return CollectResult(

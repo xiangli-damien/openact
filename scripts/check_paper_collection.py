@@ -42,7 +42,7 @@ def compare_vectors(actual, expected, tolerance):
     return relative_error
 
 
-def verify_saved_sample(runner, sample, tolerance=0.03):
+def verify_saved_sample(runner, sample, tolerance=0.03, prefix_lengths=None):
     """Verify all layers, prompt-last, all response positions, means, and RMS sides."""
     prompt = sample.prompt_token_ids.tolist()
     tokens = sample.token_ids.tolist()
@@ -69,11 +69,14 @@ def verify_saved_sample(runner, sample, tolerance=0.03):
         norm_values['post'] = output[0, -1].detach().float().cpu().numpy().copy()
     hook = find_final_norm(runner.model).register_forward_hook(capture_norm)
     errors = []
+    lengths = list(range(len(tokens) + 1)) if prefix_lengths is None else sorted(set(prefix_lengths))
+    if not lengths or any(n < 0 or n > len(tokens) for n in lengths):
+        raise ValueError('Prefix lengths must be within the saved response')
     forward_kwargs = {'logits_to_keep': 1} if 'logits_to_keep' in inspect.signature(runner.model.forward).parameters else {}
     try:
         # n=0 is an independent prompt-only forward. n>0 excludes every future
         # generated token, so equality verifies causal indexing and no leakage.
-        for n in range(len(tokens) + 1):
+        for n in lengths:
             ids = torch.tensor([prompt + tokens[:n]], device=runner.device)
             with torch.inference_mode():
                 output = runner.model(input_ids=ids, attention_mask=torch.ones_like(ids),
@@ -90,7 +93,8 @@ def verify_saved_sample(runner, sample, tolerance=0.03):
         hook.remove()
     return {'prompt_tokens': len(prompt), 'generated_tokens': len(tokens),
             'hidden_shape': list(sample.hidden_states.shape), 'finish_reason': sample.finish_reason,
-            'max_relative_l2_error': max(errors), 'prefix_forwards_checked': len(tokens) + 1}
+            'max_relative_l2_error': max(errors), 'prefix_forwards_checked': len(lengths),
+            'prefix_lengths_checked': lengths}
 
 
 def main():

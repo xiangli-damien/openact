@@ -44,6 +44,8 @@ def resolve_safety_task_kwargs(args: argparse.Namespace) -> Dict:
         kwargs["profiles"] = build_profiles_from_cli(args.profiles)
     else:
         kwargs["profiles"] = dict(DEFAULT_SAFETY_PROFILES)
+        if str(getattr(args, 'task', '')).lower() == 'wildjailbreak':
+            kwargs['profiles'] = {'greedy': DEFAULT_SAFETY_PROFILES['greedy']}
     is_jbb = str(getattr(args, 'task', '')).lower() == 'jbb'
     if is_jbb:
         kwargs['include_artifacts'] = bool(getattr(args, 'artifact_dir', None)) and not getattr(args, 'no_artifacts', False)
@@ -64,7 +66,7 @@ def resolve_safety_task_kwargs(args: argparse.Namespace) -> Dict:
     if split:
         kwargs['split'] = split
     return kwargs
-_SAFETY_TASK_NAMES = {"jbb", "advbench", "xstest"}
+_SAFETY_TASK_NAMES = {"jbb", "advbench", "xstest", "wildjailbreak"}
 def is_safety_task(task_name: str) -> bool:
     return task_name.lower() in _SAFETY_TASK_NAMES
 def get_safety_capture_defaults() -> Dict:
