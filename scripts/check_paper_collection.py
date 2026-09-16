@@ -37,12 +37,12 @@ def compare_vectors(actual, expected, tolerance):
     error = np.linalg.norm(actual - expected, axis=-1)
     scale = np.maximum(np.linalg.norm(expected, axis=-1), 1e-12)
     relative_error = float(np.max(error / scale))
-    if relative_error > tolerance:
+    if tolerance is not None and relative_error > tolerance:
         raise AssertionError(f'Causal-prefix relative L2 error {relative_error:.6g} > {tolerance}')
     return relative_error
 
 
-def verify_saved_sample(runner, sample, tolerance=0.03, prefix_lengths=None):
+def verify_saved_sample(runner, sample, tolerance=0.03, prefix_lengths=None, fixed_shape=False):
     """Verify all layers, prompt-last, all response positions, means, and RMS sides."""
     prompt = sample.prompt_token_ids.tolist()
     tokens = sample.token_ids.tolist()
@@ -65,17 +65,46 @@ def verify_saved_sample(runner, sample, tolerance=0.03, prefix_lengths=None):
 
     norm_values = {}
     def capture_norm(module, args, output):
-        norm_values['pre'] = args[0][0, -1].detach().float().cpu().numpy().copy()
-        norm_values['post'] = output[0, -1].detach().float().cpu().numpy().copy()
+        norm_values['pre'] = args[0][0].detach().float().cpu().numpy().copy()
+        norm_values['post'] = output[0].detach().float().cpu().numpy().copy()
     hook = find_final_norm(runner.model).register_forward_hook(capture_norm)
     errors = []
     lengths = list(range(len(tokens) + 1)) if prefix_lengths is None else sorted(set(prefix_lengths))
     if not lengths or any(n < 0 or n > len(tokens) for n in lengths):
         raise ValueError('Prefix lengths must be within the saved response')
     forward_kwargs = {'logits_to_keep': 1} if 'logits_to_keep' in inspect.signature(runner.model.forward).parameters else {}
+    fixed_errors = []
     try:
+        if fixed_shape:
+            # First replay the entire saved sequence, comparing every layer and
+            # token. Then change future token IDs WITHOUT changing tensor shape.
+            # This isolates causal leakage from bf16 length-dependent GEMM/kernel
+            # rounding. Exact equality is required for both checks.
+            p = len(prompt)
+            for n in [None] + [n for n in lengths if n < len(tokens)]:
+                ids = torch.tensor([prompt + tokens], device=runner.device)
+                if n is not None:
+                    ids[:, p + n:] = (ids[:, p + n:] + 1) % runner.config.vocab_size
+                with torch.inference_mode():
+                    output = runner.model(input_ids=ids, attention_mask=torch.ones_like(ids),
+                                          output_hidden_states=True, use_cache=False, **forward_kwargs)
+                positions = slice(p - 1, None) if n is None else p + n - 1
+                expected = torch.stack([h[0, positions].float().cpu() for h in output.hidden_states],
+                                       dim=-2).numpy()
+                saved = (np.concatenate([sample.prompt_last_hidden_states[None], sample.hidden_states])
+                         if n is None else sample.prompt_last_hidden_states if n == 0
+                         else sample.hidden_states[n - 1])
+                fixed_errors.append(compare_vectors(saved, expected, 0.0))
+                for side in ('pre', 'post'):
+                    saved_norm = (np.concatenate([sample.get_final_norm_states(side, 'prompt_last')[None],
+                                                  sample.get_final_norm_states(side)])
+                                  if n is None else sample.get_final_norm_states(side, 'prompt_last')
+                                  if n == 0 else sample.get_final_norm_states(side)[n - 1])
+                    fixed_errors.append(compare_vectors(saved_norm, norm_values[side][positions], 0.0))
+                del output
         # n=0 is an independent prompt-only forward. n>0 excludes every future
-        # generated token, so equality verifies causal indexing and no leakage.
+        # generated token. With fixed-shape checks enabled, these different-shape
+        # bf16 comparisons are diagnostics, not an arbitrary acceptance threshold.
         for n in lengths:
             ids = torch.tensor([prompt + tokens[:n]], device=runner.device)
             with torch.inference_mode():
@@ -83,18 +112,21 @@ def verify_saved_sample(runner, sample, tolerance=0.03, prefix_lengths=None):
                                       output_hidden_states=True, use_cache=False, **forward_kwargs)
             expected = torch.stack([h[0, -1].float().cpu() for h in output.hidden_states]).numpy()
             saved = sample.prompt_last_hidden_states if n == 0 else sample.hidden_states[n - 1]
-            errors.append(compare_vectors(saved, expected, tolerance))
+            errors.append(compare_vectors(saved, expected, None if fixed_shape else tolerance))
             for side in ('pre', 'post'):
                 saved_norm = (sample.get_final_norm_states(side, 'prompt_last') if n == 0
                               else sample.get_final_norm_states(side)[n - 1])
-                errors.append(compare_vectors(saved_norm, norm_values[side], tolerance))
+                errors.append(compare_vectors(saved_norm, norm_values[side][-1], None if fixed_shape else tolerance))
             del output
     finally:
         hook.remove()
     return {'prompt_tokens': len(prompt), 'generated_tokens': len(tokens),
             'hidden_shape': list(sample.hidden_states.shape), 'finish_reason': sample.finish_reason,
             'max_relative_l2_error': max(errors), 'prefix_forwards_checked': len(lengths),
-            'prefix_lengths_checked': lengths}
+            'prefix_lengths_checked': lengths,
+            'fixed_shape_exact_replay_and_causality': fixed_shape,
+            'fixed_shape_max_relative_l2_error': max(fixed_errors) if fixed_errors else None,
+            'variable_shape_prefix_exceeds_nominal_tolerance': max(errors) > tolerance}
 
 
 def main():

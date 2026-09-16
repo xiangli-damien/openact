@@ -60,6 +60,21 @@ def test_context_budget_is_clamped_and_prompt_is_never_truncated():
         runner.generate(torch.tensor([[2, 3, 4, 5, 6]]), GenerationSpec(max_new_tokens=1))
 
 
+@pytest.mark.parametrize('truth,answer,correct', [
+    (r'\text{Evelyn}', r'\text{Evelyn}', True),
+    (r'\text{June 20}', 'June 20', True),
+    (r'\text{odd}', r'\text{even}', False),
+    (r'\text{(C)}', r'\text{(D)}', False),
+    (r'\text{13}', '13', True),
+])
+def test_math_preserves_textual_answers(truth, answer, correct):
+    sample = SimpleNamespace(meta={}, ground_truth=truth, prompt_text='',
+                             response_text=rf'\boxed{{{answer}}}', sample_idx=0)
+    result = ParserEvaluator('math').evaluate_sample(sample)
+    assert result.is_correct is correct
+    assert result.normalized_answer
+
+
 def test_matrix_has_twenty_five_cells_and_shared_sampling():
     from openact_collect.config import tomllib
     from scripts.run_collection_matrix import select_items
