@@ -1,7 +1,8 @@
 """GPU acceptance check for the paper's four generation models.
 
 Runs each model sequentially, writes real collection artifacts, then checks every
-saved token against an independent causal-prefix forward. No benchmark fitting.
+saved token by exact replay and fixed-shape future-token perturbations. Separate
+variable-length causal-prefix forwards quantify bf16 rounding. No fitting.
     uv run python scripts/check_paper_collection.py --output runs/paper_check
 """
 import argparse
@@ -149,7 +150,8 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     report = {'created_at': datetime.now(timezone.utc).isoformat(), 'gpu': torch.cuda.get_device_name(),
               'torch': torch.__version__, 'cuda': torch.version.cuda,
-              'relative_l2_tolerance': 0.03, 'models': [], 'passed': False}
+              'variable_shape_nominal_tolerance': 0.03, 'fixed_shape_relative_l2_tolerance': 0.0,
+              'models': [], 'passed': False}
     try:
         for alias in args.model or MODELS:
             model_id, layers, width = MODELS[alias]
@@ -172,7 +174,7 @@ def main():
                 run = Run(args.output / alias)
                 if run.validate() or stats['ok'] != 2:
                     raise AssertionError('Collection/storage validation failed')
-                row.update(revision=run.manifest.model.revision, samples=[verify_saved_sample(runner, s) for s in run],
+                row.update(revision=run.manifest.model.revision, samples=[verify_saved_sample(runner, s, fixed_shape=True) for s in run],
                            peak_cuda_allocated_bytes=torch.cuda.max_memory_allocated(), passed=True)
                 print(f'PASS {alias}: every saved position checked against its causal prefix', flush=True)
             except Exception as exc:

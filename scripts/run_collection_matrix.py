@@ -73,6 +73,7 @@ def context_preflight(runner, items, generation_budget):
 
 
 def verify_run(runner, run):
+    started = time.perf_counter()
     errors = run.validate()
     if errors or not run.is_complete or run.n_valid != len(run):
         raise AssertionError(f'Invalid/incomplete collection: {errors}')
@@ -85,9 +86,13 @@ def verify_run(runner, run):
             raise AssertionError('Nonfinite activations')
         np.testing.assert_array_equal(states[:, -1], sample.get_final_norm_states('post'))
         np.testing.assert_allclose(states.mean(0), sample.mean_hidden_states, rtol=1e-5, atol=1e-6)
+    arrays_checked = time.perf_counter()
     first = run[0]
-    return verify_saved_sample(runner, first, prefix_lengths=[0, 1, min(8, first.n_tokens), first.n_tokens],
-                               fixed_shape=True)
+    result = verify_saved_sample(runner, first, prefix_lengths=[0, 1, min(8, first.n_tokens), first.n_tokens],
+                                 fixed_shape=True)
+    result['stored_array_check_seconds'] = arrays_checked - started
+    result['causal_replay_seconds'] = time.perf_counter() - arrays_checked
+    return result
 
 
 def evaluate_run(run, evaluator, label):
