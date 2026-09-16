@@ -87,9 +87,19 @@ def verify_run(runner, run):
         np.testing.assert_array_equal(states[:, -1], sample.get_final_norm_states('post'))
         np.testing.assert_allclose(states.mean(0), sample.mean_hidden_states, rtol=1e-5, atol=1e-6)
     arrays_checked = time.perf_counter()
-    first = run[0]
-    result = verify_saved_sample(runner, first, prefix_lengths=[0, 1, min(8, first.n_tokens), first.n_tokens],
-                                 fixed_shape=True)
+    longest = max(range(len(run)), key=lambda i: run[i].n_tokens)
+    indices = sorted({0, longest})
+    checks = []
+    for index in indices:
+        sample = run[index]
+        check = verify_saved_sample(runner, sample,
+                                    prefix_lengths=[0, 1, min(8, sample.n_tokens), sample.n_tokens],
+                                    fixed_shape=True)
+        checks.append({'sample_index': index, **check})
+    result = {'samples_deep_checked': indices, 'sample_checks': checks,
+              'fixed_shape_exact_replay_and_causality': True,
+              'fixed_shape_max_relative_l2_error': max(c['fixed_shape_max_relative_l2_error'] for c in checks),
+              'max_relative_l2_error': max(c['max_relative_l2_error'] for c in checks)}
     result['stored_array_check_seconds'] = arrays_checked - started
     result['causal_replay_seconds'] = time.perf_counter() - arrays_checked
     return result

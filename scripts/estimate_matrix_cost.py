@@ -33,8 +33,8 @@ def estimate(config, reports):
             sec_per_token = pilot['collect_seconds'] / token_count
             bytes_per_token = pilot['stored_bytes'] / token_count
             verification = pilot.get('verification', {})
-            # Stored-array scans cover all rows; the deep replay checks one
-            # representative sample per cell and is paid only once.
+            # Stored-array scans cover all rows; the deep replay checks the first
+            # and longest samples per cell and is paid only once.
             verification_hours = (verification.get('stored_array_check_seconds', 0) * factor
                                   + verification.get('causal_replay_seconds', 0)) / 3600
             scenarios = []
@@ -60,7 +60,7 @@ def estimate(config, reports):
             'caveats': ['Three-sample cells are a coarse pilot, not a benchmark-quality timing study.',
                         'Length-capped samples do not establish natural completion lengths.',
                         'Token scenarios hold measured seconds/byte cost per token constant; prefill and IO vary.',
-                        'Includes stored-array scans and one deep replay per cell; excludes downloads, model loading and retries.',
+                        'Includes stored-array scans and first/longest-sample replay per cell; excludes downloads, model loading and retries.',
                         'Cached pilot reads and provider storage performance may differ during a large run.',
                         'GB/TB are decimal; filesystem quotas and provider charges are separate.'],
             'rows': rows, 'missing_cells': missing,
