@@ -105,6 +105,28 @@ def test_guard_safety_is_not_refusal_and_absent_splits_are_not_rates():
     assert 'N/A' in format_safety_report(empty)
 
 
+def test_writer_finalizes_partial_pointer_table_across_chunk_boundary(tmp_path):
+    import numpy as np
+    from openact_collect.engine.async_writer import ZarrWriter
+    from openact_collect.schema import StorageSpec
+    from openact_core.schema.manifest import Manifest
+    manifest = Manifest()
+    manifest.dataset.n_samples = 5000
+    manifest.model.n_layers = 3
+    manifest.model.hidden_dim = 16
+    writer = ZarrWriter(tmp_path / 'tensors.zarr', manifest, CaptureSpec(), StorageSpec())
+    writer.start()
+    ptr = writer._arrays['sample_ptr']
+    ptr[1:3] = [3, 7]
+    ptr[4097] = 11
+    writer.finalize()
+    assert ptr[0] == 0
+    assert ptr[1] == 3
+    np.testing.assert_array_equal(ptr[2:4097], 7)
+    np.testing.assert_array_equal(ptr[4097:], 11)
+    assert writer._arrays['hs_mean'].chunks[0] == 1
+
+
 def test_cost_estimate_scales_each_cell_without_double_counting():
     from scripts.estimate_matrix_cost import estimate
     config = {'models': {'tiny': 'tiny'}, 'datasets': [{'key': 'math', 'expected_samples': 100}], 'max_new_tokens': 2048}
