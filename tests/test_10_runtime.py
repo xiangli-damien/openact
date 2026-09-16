@@ -144,6 +144,9 @@ def test_paper_all_layers_match_independent_causal_prefixes(tmp_path, family, at
     checks = verify_saved_sample(runner, sample, tolerance=1e-5)
     assert checks['hidden_shape'] == [4, 3, 16]
     assert checks['prefix_forwards_checked'] == 5
+    fixed = verify_saved_sample(runner, sample, tolerance=1e-5, fixed_shape=True)
+    assert fixed['fixed_shape_exact_replay_and_causality']
+    assert fixed['fixed_shape_max_relative_l2_error'] == 0
     # Prefix average is recoverable using only states up to the chosen boundary.
     prefix_ids = torch.tensor([sample.prompt_token_ids.tolist() + sample.token_ids[:2].tolist()])
     with torch.inference_mode():

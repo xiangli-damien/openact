@@ -86,7 +86,8 @@ def verify_run(runner, run):
         np.testing.assert_array_equal(states[:, -1], sample.get_final_norm_states('post'))
         np.testing.assert_allclose(states.mean(0), sample.mean_hidden_states, rtol=1e-5, atol=1e-6)
     first = run[0]
-    return verify_saved_sample(runner, first, prefix_lengths=[0, 1, min(8, first.n_tokens), first.n_tokens])
+    return verify_saved_sample(runner, first, prefix_lengths=[0, 1, min(8, first.n_tokens), first.n_tokens],
+                               fixed_shape=True)
 
 
 def evaluate_run(run, evaluator, label):
@@ -98,7 +99,11 @@ def evaluate_run(run, evaluator, label):
     saved = Path(summary['label_path'])
     if not saved.exists():
         raise AssertionError('Evaluation did not persist labels')
-    return summary, time.perf_counter() - started
+    summary['pipeline_seconds'] = time.perf_counter() - started
+    summary['evaluation_seconds'] = pipeline.result.wall_time_s
+    summary['setup_teardown_and_io_seconds'] = summary['pipeline_seconds'] - pipeline.result.wall_time_s
+    # Do not extrapolate one-time judge loading/download overhead per sample.
+    return summary, pipeline.result.wall_time_s
 
 
 def main():
@@ -177,8 +182,9 @@ def main():
                                tokens=stats['n_tokens_total'],
                                response_tokens=[s.n_tokens for s in run],
                                finish_reasons=[s.finish_reason for s in run],
-                               verification=verify_run(runner, run),
+                               stored_bytes=directory_bytes(run_path),
                                peak_cuda_allocated_bytes=torch.cuda.max_memory_allocated())
+                    row['verification'] = verify_run(runner, run)
                     if dataset.get('evaluator') == 'llamaguard':
                         pending_safety.append((row, run_path))
                     else:

@@ -51,7 +51,10 @@ def normalize_math_expr(answer: Optional[str]) -> str:
         return ''
     s = str(answer).strip()
     s = s.replace('$', '')
-    s = re.sub(r'\\text\{[^}]*\}', '', s)
+    # Text is sometimes the entire answer (names, weekdays, odd/even, etc.).
+    # Strip the formatting wrapper, never its content. Repeat for nested text.
+    while re.search(r'\\text\{([^{}]*)\}', s):
+        s = re.sub(r'\\text\{([^{}]*)\}', r'\1', s)
     s = re.sub(r'\\(?:left|right|displaystyle|,|;|!|quad|qquad)\b', '', s)
     s = s.replace('\\dfrac', '\\frac')
     s = ' '.join(s.split())
