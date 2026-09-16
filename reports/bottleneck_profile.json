@@ -1,0 +1,78 @@
+{
+  "model": "llama2",
+  "dataset": "wildjailbreak",
+  "sample_ids": [
+    "wildjailbreak_vanilla_harmful_27057_goal_greedy_r0",
+    "wildjailbreak_vanilla_harmful_29201_goal_greedy_r0",
+    "wildjailbreak_vanilla_harmful_33470_goal_greedy_r0"
+  ],
+  "tokens": [
+    520,
+    218,
+    271
+  ],
+  "collection_seconds": 55.59805989265442,
+  "timings": {
+    "writer_initialization": [
+      0.8730640989997482
+    ],
+    "hf_generation": [
+      13.697116199999073,
+      5.6007367269994575,
+      6.892140607998954
+    ],
+    "generation_and_teacher_forward": [
+      13.903660706000665,
+      5.652459447999718,
+      6.960788983000384
+    ],
+    "cpu_activation_extract": [
+      0.5182313900004374,
+      0.23667000900059065,
+      0.32792359099948953
+    ],
+    "token_offsets": [
+      0.17006104200117989,
+      0.03328588899967144,
+      0.04945391900037066
+    ],
+    "compressed_nfs_sample_write": [
+      11.066290052998738,
+      5.415338619999602,
+      10.157827844999701
+    ],
+    "parquet_finalize": [
+      0.04174081000019214
+    ],
+    "writer_finalize": [
+      0.12816838499929872
+    ],
+    "completion_validation": [
+      0.037157315000513336
+    ]
+  },
+  "totals_seconds": {
+    "writer_initialization": 0.8730640989997482,
+    "hf_generation": 26.189993534997484,
+    "generation_and_teacher_forward": 26.516909137000766,
+    "cpu_activation_extract": 1.0828249900005176,
+    "token_offsets": 0.252800850001222,
+    "compressed_nfs_sample_write": 26.639456517998042,
+    "parquet_finalize": 0.04174081000019214,
+    "writer_finalize": 0.12816838499929872,
+    "completion_validation": 0.037157315000513336,
+    "teacher_forward_transfer_alignment": 0.3269156020032824
+  },
+  "notes": "Nested timers: hf_generation is inside generation_and_teacher_forward. Current writer; same three deterministic safety prompts. CUDA synchronize at generation boundaries.",
+  "local_instance_disk_comparison": {
+    "init_seconds": 0.01145411499965121,
+    "sample_write_seconds": [
+      0.8866385600013018,
+      0.436521730000095,
+      0.8506238639984076
+    ],
+    "finalize_seconds": 0.003519380999932764,
+    "stored_bytes": 214943749,
+    "notes": "Same already-captured arrays and lossless compression; input reads excluded; fresh temporary directory on /tmp. OS-buffered writes, no fsync. Temporary output removed after timing."
+  }
+}
