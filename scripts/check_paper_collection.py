@@ -49,20 +49,27 @@ def verify_saved_sample(runner, sample, tolerance=0.03, prefix_lengths=None, fix
     tokens = sample.token_ids.tolist()
     if not prompt or not tokens:
         raise AssertionError('Expected nonempty prompt and generated token sequence')
+    # Read each compressed array once. Indexing the Sample property repeatedly
+    # would decompress the entire response again for every prefix on NFS.
+    states = sample.hidden_states
+    prompt_states = sample.prompt_last_hidden_states
+    norm_states = {side: sample.get_final_norm_states(side) for side in ('pre', 'post')}
+    norm_prompt = {side: sample.get_final_norm_states(side, 'prompt_last') for side in ('pre', 'post')}
+    norm_mean = {side: sample.get_final_norm_states(side, 'mean') for side in ('pre', 'post')}
     n_layers = runner.probed_n_layers
     width = runner.get_model_spec().hidden_dim
-    if sample.hidden_states.shape != (len(tokens), n_layers, width):
-        raise AssertionError(f'Incomplete token/layer coverage: {sample.hidden_states.shape}')
+    if states.shape != (len(tokens), n_layers, width):
+        raise AssertionError(f'Incomplete token/layer coverage: {states.shape}')
     # The last prompt token includes the model's assistant-start chat markers.
     rendered_ids = runner.apply_chat_template([{'role': 'user', 'content': sample.prompt_text}])[0].tolist()
     if prompt != rendered_ids:
         raise AssertionError('Saved prompt IDs differ from the selected tokenizer chat template')
-    np.testing.assert_allclose(sample.mean_hidden_states, sample.hidden_states.mean(0), rtol=1e-5, atol=1e-6)
+    np.testing.assert_allclose(sample.mean_hidden_states, states.mean(0), rtol=1e-5, atol=1e-6)
     for side in ('pre', 'post'):
-        np.testing.assert_allclose(sample.get_final_norm_states(side, 'mean'),
-                                   sample.get_final_norm_states(side).mean(0), rtol=1e-5, atol=1e-6)
-    np.testing.assert_array_equal(sample.hidden_states[:, -1], sample.get_final_norm_states('post'))
-    np.testing.assert_array_equal(sample.prompt_last_hidden_states[-1], sample.get_final_norm_states('post', 'prompt_last'))
+        np.testing.assert_allclose(norm_mean[side],
+                                   norm_states[side].mean(0), rtol=1e-5, atol=1e-6)
+    np.testing.assert_array_equal(states[:, -1], norm_states['post'])
+    np.testing.assert_array_equal(prompt_states[-1], norm_prompt['post'])
 
     norm_values = {}
     def capture_norm(module, args, output):
@@ -92,15 +99,15 @@ def verify_saved_sample(runner, sample, tolerance=0.03, prefix_lengths=None, fix
                 positions = slice(p - 1, None) if n is None else p + n - 1
                 expected = torch.stack([h[0, positions].float().cpu() for h in output.hidden_states],
                                        dim=-2).numpy()
-                saved = (np.concatenate([sample.prompt_last_hidden_states[None], sample.hidden_states])
-                         if n is None else sample.prompt_last_hidden_states if n == 0
-                         else sample.hidden_states[n - 1])
+                saved = (np.concatenate([prompt_states[None], states])
+                         if n is None else prompt_states if n == 0
+                         else states[n - 1])
                 fixed_errors.append(compare_vectors(saved, expected, 0.0))
                 for side in ('pre', 'post'):
-                    saved_norm = (np.concatenate([sample.get_final_norm_states(side, 'prompt_last')[None],
-                                                  sample.get_final_norm_states(side)])
-                                  if n is None else sample.get_final_norm_states(side, 'prompt_last')
-                                  if n == 0 else sample.get_final_norm_states(side)[n - 1])
+                    saved_norm = (np.concatenate([norm_prompt[side][None],
+                                                  norm_states[side]])
+                                  if n is None else norm_prompt[side]
+                                  if n == 0 else norm_states[side][n - 1])
                     fixed_errors.append(compare_vectors(saved_norm, norm_values[side][positions], 0.0))
                 del output
         # n=0 is an independent prompt-only forward. n>0 excludes every future
@@ -112,17 +119,17 @@ def verify_saved_sample(runner, sample, tolerance=0.03, prefix_lengths=None, fix
                 output = runner.model(input_ids=ids, attention_mask=torch.ones_like(ids),
                                       output_hidden_states=True, use_cache=False, **forward_kwargs)
             expected = torch.stack([h[0, -1].float().cpu() for h in output.hidden_states]).numpy()
-            saved = sample.prompt_last_hidden_states if n == 0 else sample.hidden_states[n - 1]
+            saved = prompt_states if n == 0 else states[n - 1]
             errors.append(compare_vectors(saved, expected, None if fixed_shape else tolerance))
             for side in ('pre', 'post'):
-                saved_norm = (sample.get_final_norm_states(side, 'prompt_last') if n == 0
-                              else sample.get_final_norm_states(side)[n - 1])
+                saved_norm = (norm_prompt[side] if n == 0
+                              else norm_states[side][n - 1])
                 errors.append(compare_vectors(saved_norm, norm_values[side][-1], None if fixed_shape else tolerance))
             del output
     finally:
         hook.remove()
     return {'prompt_tokens': len(prompt), 'generated_tokens': len(tokens),
-            'hidden_shape': list(sample.hidden_states.shape), 'finish_reason': sample.finish_reason,
+            'hidden_shape': list(states.shape), 'finish_reason': sample.finish_reason,
             'max_relative_l2_error': max(errors), 'prefix_forwards_checked': len(lengths),
             'prefix_lengths_checked': lengths,
             'fixed_shape_exact_replay_and_causality': fixed_shape,
