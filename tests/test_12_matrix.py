@@ -98,3 +98,7 @@ def test_cost_estimate_scales_each_cell_without_double_counting():
     assert result['totals']['total_hours'] == pytest.approx(600 / 3600)
     assert result['totals']['stored_tb'] == pytest.approx(50000 / 1e12)
     assert result['missing_cells'] == []
+    row['verification'] = {'stored_array_check_seconds': 4, 'causal_replay_seconds': 7}
+    result = estimate(config, [{'rows': [row]}])
+    assert result['totals']['verification_hours'] == pytest.approx(207 / 3600)
+    assert result['totals']['total_hours'] == pytest.approx(807 / 3600)
