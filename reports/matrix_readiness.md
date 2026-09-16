@@ -150,6 +150,39 @@ only**, excluding evaluation/validation; fixed measured seconds and bytes/token)
 These scenarios expose sensitivity to response length; they are not forecasts of
 natural model completion lengths.
 
+### Follow-up: where the time goes
+
+A separate instrumented rerun of the same three Llama-2 Safety examples produced
+exactly the same response lengths (520, 218, 271 tokens). Current code took
+55.60 seconds, close to the original 55.03-second pilot.
+The timers separate generation from teacher forcing and storage:
+
+| Stage | Seconds for 3 examples | Approximate share |
+|---|---:|---:|
+| HF generation, batch size 1 | 26.19 | 47.1% |
+| Teacher-forced forward, transfer, alignment | 0.33 | 0.6% |
+| CPU activation extraction | 1.08 | 1.9% |
+| Lossless compression and synchronous writes to dami | 26.64 | 47.9% |
+
+Storage initialization was 0.87 seconds. One-time startup
+is over-extrapolated by the original three-sample calculation, but is a small
+part of this measured case. The main bottlenecks are serial decoding and
+synchronous network-filesystem writes; teacher forcing with both RMSNorm sides
+is less than 1% here.
+
+Writing the **same captured arrays with the same compression** to the instance's
+local temporary disk took **2.17 seconds**, versus **26.64 seconds**
+to dami (about 12.3 times lower application write latency).
+Both are application-level timings, with no fsync/durable-write guarantee; the
+comparison excludes reading inputs. Temporary local outputs were deleted afterward.
+This supports investigating local staging with background transfer and batching,
+but does not establish an optimized full-run completion time. Any staging design
+must handle the instance disk's limited capacity and verified transfer to dami.
+
+Thus the approximately 24-day figure describes the **current serial pipeline**,
+not a hardware lower bound. Changing batching or generation backends still needs
+numerical/label validation. Evidence: [stage timings](bottleneck_profile.json).
+
 ### Per-cell planning figures
 
 | Model | Dataset | Full rows | Pilot generated tokens | Total hours | Compressed GB |
