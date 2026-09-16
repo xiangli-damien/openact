@@ -91,13 +91,16 @@ def test_guard_safety_is_not_refusal_and_absent_splits_are_not_rates():
     from openact_eval.evaluators.base import EvalRecord, EvalResult
     from openact_eval.metrics_safety import compute_safety_metrics, format_safety_report
     result = EvalResult(records=[
-        EvalRecord(sample_idx=0, is_correct=True, meta={'split': 'harmful', 'is_refusal': False}),
-        EvalRecord(sample_idx=1, is_correct=False, meta={'split': 'harmful', 'is_refusal': False}),
+        EvalRecord(sample_idx=0, is_correct=True, meta={'split': 'harmful', 'is_refusal': False,
+                                                       'category': 'input_category', 'safety_category': None}),
+        EvalRecord(sample_idx=1, is_correct=False, meta={'split': 'harmful', 'is_refusal': False,
+                                                        'category': 'input_category', 'safety_category': 'S1'}),
     ])
     metrics = compute_safety_metrics(result)
     assert metrics.safe_response_rate_harmful == 0.5
     assert metrics.refusal_rate_harmful == 0
     assert metrics.attack_success_rate == 0.5
+    assert metrics.asr_by_category == {'input_category': 0.5}
     assert metrics.over_refusal_rate is None
     assert metrics.to_dict()['compliance_rate_benign'] is None
     empty = compute_safety_metrics(EvalResult(records=[]))
