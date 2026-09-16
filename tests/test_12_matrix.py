@@ -70,3 +70,16 @@ def test_matrix_has_twenty_five_cells_and_shared_sampling():
     a = select_items(list(range(100)), 3, 42, 'math')
     assert a == select_items(list(range(100)), 3, 42, 'math')
     assert len(set(a)) == 3
+
+
+def test_cost_estimate_scales_each_cell_without_double_counting():
+    from scripts.estimate_matrix_cost import estimate
+    config = {'models': {'tiny': 'tiny'}, 'datasets': [{'key': 'math', 'expected_samples': 100}], 'max_new_tokens': 2048}
+    row = {'model_alias': 'tiny', 'dataset': 'math', 'samples': 2, 'tokens': 20,
+           'collect_seconds': 10, 'eval_seconds': 2, 'stored_bytes': 1000,
+           'response_tokens': [10, 10], 'finish_reasons': ['eos', 'eos'], 'passed': True}
+    result = estimate(config, [{'rows': [row]}, {'rows': [row]}])
+    assert len(result['rows']) == 1
+    assert result['totals']['total_hours'] == pytest.approx(600 / 3600)
+    assert result['totals']['stored_tb'] == pytest.approx(50000 / 1e12)
+    assert result['missing_cells'] == []
