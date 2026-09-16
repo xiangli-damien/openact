@@ -1,0 +1,13 @@
+{
+  "source": "/lambda/nfs/dami/openact/runs/bottleneck_profile_20260916",
+  "file_count": 392,
+  "file_bytes": 214987143,
+  "tar_bytes": 215726080,
+  "setup_nfs_to_local_seconds": 0.8406455809999898,
+  "local_to_dami_individual_files_seconds": 9.064145910997468,
+  "local_tar_pack_seconds": 0.33492453999861027,
+  "local_to_dami_tar_copy_seconds": 0.705712790000689,
+  "checksum_verification_seconds": 2.8687442849986837,
+  "checksums_match": true,
+  "notes": "Same complete 3-sample run. Tar has no additional compression: Zarr chunks already compressed. Copy timings exclude setup and verification. Application-level closed-file timings; no explicit fsync; cache and filesystem state affect results. Temporary test copies removed, original run retained."
+}

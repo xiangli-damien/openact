@@ -183,6 +183,29 @@ Thus the approximately 24-day figure describes the **current serial pipeline**,
 not a hardware lower bound. Changing batching or generation backends still needs
 numerical/label validation. Evidence: [stage timings](bottleneck_profile.json).
 
+### Follow-up: local files transferred to dami
+
+For the same complete three-sample run (215.0 MB in 392 files):
+
+| Operation | Measured seconds |
+|---|---:|
+| Copy finished files individually from instance-local disk to dami | 9.06 |
+| Pack the local directory into an uncompressed tar | 0.33 |
+| Copy that single tar file to dami | 0.71 |
+
+Checksums of the transferred archive and every individually copied file matched.
+Setup reads were excluded. These are small, cache-sensitive, application-level
+copy timings without explicit fsync; they are not sustained multi-TB bandwidth
+measurements. Temporary copies were removed; the original run remains intact.
+
+The earlier 2.17-second local writer benchmark excludes this later transfer.
+Keeping the current directory layout therefore still incurs the measured
+individual-file copy step. A tar upload is useful for archival/transport, but
+the existing Run reader needs the directory extracted first. Extracting directly
+onto dami would incur small-file writes again, so the 0.71-second archive copy
+must not be treated as the complete cost of restoring an immediately readable
+Zarr directory there. Evidence: [transfer timings](local_to_dami_profile.json).
+
 ### Per-cell planning figures
 
 | Model | Dataset | Full rows | Pilot generated tokens | Total hours | Compressed GB |
