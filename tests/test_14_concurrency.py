@@ -99,3 +99,45 @@ def test_failed_memory_or_correctness_cannot_approve_production():
     valid['comparisons']['llama3']['memory_headroom_mib'] = 4000
     with pytest.raises(ValueError, match='headroom'):
         validate_benchmark(valid)
+
+
+def test_mmlu_shard_collect_verify_evaluate_publish(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+    import pandas as pd
+    from openact_collect.schema import CaptureSpec, GenerationSpec
+    from openact_collect.tasks.prepared import PreparedParquetTask
+    from openact_core import Run
+    from scripts import run_mmlu_collection as mmlu
+    from tests.test_10_runtime import make_runner
+    runner = make_runner()
+    prepared = tmp_path / 'prepared'
+    prepared.mkdir()
+    pd.DataFrame([
+        {'sample_id': 'mmlu_a', 'prompt_text': 'hello world', 'ground_truth': 'A', 'subject': 'algebra'},
+        {'sample_id': 'mmlu_b', 'prompt_text': 'hello', 'ground_truth': 'B', 'subject': 'algebra'},
+    ]).to_parquet(prepared / 'part_00000.parquet', index=False)
+    (prepared / 'prepared_manifest.json').write_text(json.dumps({
+        'task': 'mmlu', 'task_source': 'test', 'split': 'test', 'prompt_template_variant': 'zot',
+    }))
+    items = list(PreparedParquetTask(prepared).iter_items())
+    admissions = []
+    gate = SimpleNamespace(wait=lambda r: admissions.append(r))
+    monkeypatch.setattr(mmlu.torch.cuda, 'reset_peak_memory_stats', lambda: None)
+    monkeypatch.setattr(mmlu.torch.cuda, 'max_memory_allocated', lambda: 0)
+    local, destination = tmp_path / 'local', tmp_path / 'persistent'
+    mmlu.collect_shard(runner, gate, prepared, items, local,
+                       {'model': {}, 'collection': {}}, GenerationSpec(max_new_tokens=3),
+                       CaptureSpec(hidden_states_dtype='float32'),
+                       {'dataset': 'mmlu', 'model_alias': 'llama32', 'start': 0, 'stop': 2})
+    assert len(admissions) == 4  # Before shard, each sample, and verification.
+    record = json.loads((local / '_SHARD.json').read_text())
+    assert record['evaluation']['n_evaluated'] == 2
+    assert record['evaluation']['n_error'] == 0
+    assert record['evaluation']['evaluator'] == 'parser/mmlu'
+    assert record['verification']['fixed_shape_max_relative_l2_error'] == 0
+    mmlu.publish_shard(local, destination)
+    run = Run(destination, require_complete=True)
+    assert [s.sample_id for s in run] == ['mmlu_a', 'mmlu_b']
+    assert (destination / 'labels/correctness.parquet').exists()
+    assert not local.exists()
