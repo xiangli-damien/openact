@@ -105,6 +105,19 @@ def test_guard_safety_is_not_refusal_and_absent_splits_are_not_rates():
     assert 'N/A' in format_safety_report(empty)
 
 
+def test_guard_probability_uses_label_step_after_newline():
+    from openact_eval.evaluators.safety_evaluators import compute_unsafe_prob
+    tokenizer = SimpleNamespace(
+        encode=lambda text, **kw: [1] if text == 'safe' else [2],
+        decode=lambda ids, **kw: '\n' if ids == [0] else 'unexpected',
+    )
+    scores = [torch.tensor([[20., 0., 0.]]), torch.tensor([[0., 20., 0.]])]
+    result = compute_unsafe_prob(scores, tokenizer, [0, 1])
+    assert result['safe_prob'] > 0.99
+    assert compute_unsafe_prob(scores, tokenizer, [3, 1])['safe_prob'] is None
+    assert compute_unsafe_prob(scores, tokenizer)['safe_prob'] is None
+
+
 def test_writer_finalizes_partial_pointer_table_across_chunk_boundary(tmp_path):
     import numpy as np
     from openact_collect.engine.async_writer import ZarrWriter
