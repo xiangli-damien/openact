@@ -1,0 +1,887 @@
+{
+  "math": {
+    "rows": 5000,
+    "directory": "/lambda/nfs/dami/openact-data/prepared/math",
+    "prompt_variants": [
+      "zot"
+    ],
+    "empty_prompts": 0,
+    "duplicate_sample_ids": 0,
+    "prepared_manifest": {
+      "created_at": "2026-09-15T23:51:17.558870Z",
+      "task": "math",
+      "task_source": "EleutherAI/hendrycks_math",
+      "task_type": "capability",
+      "split": "test",
+      "max_samples": null,
+      "language": "en",
+      "prompt_template_variant": "zot",
+      "task_config": {},
+      "prompt_template": {
+        "name": "math_zot",
+        "template": "Question: {problem}\nPlease reason step by step, and put your final answer within \\boxed{{}}.",
+        "variables": [
+          "problem"
+        ],
+        "description": "Zero-shot-of-thought expecting LaTeX boxed answer.",
+        "answer_prefix": "\\boxed",
+        "language": "en",
+        "requested_language": "en",
+        "localization_mode": "base",
+        "supports_multilingual": false,
+        "hash": "507f30ec8346341e"
+      },
+      "dataset_sources": [
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "algebra",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "0132904b03fe9c0d"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "counting_and_probability",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "80e8f86793e44265"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "geometry",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "7356bd112b7f6763"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "intermediate_algebra",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "396bd5edc76d0181"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "number_theory",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1ab2ad63c6a64212"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "prealgebra",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "2499c65bc23b035a"
+        },
+        {
+          "name": "EleutherAI/hendrycks_math",
+          "config": "precalculus",
+          "split": "test",
+          "revision": "21a5633873b6a120296cce3e2df9d5550074f4a3",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "39c11723a8c0d325"
+        }
+      ]
+    }
+  },
+  "mmlu": {
+    "rows": 14042,
+    "directory": "/lambda/nfs/dami/openact-data/prepared/mmlu",
+    "prompt_variants": [
+      "zot"
+    ],
+    "empty_prompts": 0,
+    "duplicate_sample_ids": 0,
+    "prepared_manifest": {
+      "created_at": "2026-09-15T23:52:05.421522Z",
+      "task": "mmlu",
+      "task_source": "cais/mmlu",
+      "task_type": "capability",
+      "split": "test",
+      "max_samples": null,
+      "language": "en",
+      "prompt_template_variant": "zot",
+      "task_config": {},
+      "prompt_template": {
+        "name": "mmlu_zot",
+        "template": "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\nQuestion:\n{question}",
+        "variables": [
+          "question"
+        ],
+        "description": "Zero-shot-of-thought for 4-choice MMLU with choices embedded in question field.",
+        "answer_prefix": "Answer",
+        "language": "en",
+        "requested_language": "en",
+        "localization_mode": "base",
+        "supports_multilingual": false,
+        "hash": "2f9bb524d28c03b2"
+      },
+      "dataset_sources": [
+        {
+          "name": "cais/mmlu",
+          "config": "abstract_algebra",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a405e35a20e96c3e"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "anatomy",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f5316a25c7cd3834"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "astronomy",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a9271288c1c8608a"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "business_ethics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "73d48c7e397703f2"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "clinical_knowledge",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "52dba1b9a7a1c715"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_biology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f481f714da28f58e"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_chemistry",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c44cc25bbe4aa152"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_computer_science",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "17407d242be5fce7"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_mathematics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "cc8e8f1e82542ff9"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_medicine",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c9c5b9e4534c3ad9"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "college_physics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "661d2023229857f2"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "computer_security",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c00551a55138390b"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "conceptual_physics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "d9d38a5e9279b6ad"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "econometrics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a054399942377de0"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "electrical_engineering",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "7f22056f089182dc"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "elementary_mathematics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "ed1a2da884ddd4a4"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "formal_logic",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "6f88a8a590d6acc9"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "global_facts",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "36088c2f9bdfb126"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_biology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "75b4e56cd1a20317"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_chemistry",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "20a956b6a2569eb1"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_computer_science",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a1b962b5b71142b8"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_european_history",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "575860884e6c1a8a"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_geography",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1af64fe7fa5c3d75"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_government_and_politics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "22e5ed8bb3d3e3d7"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_macroeconomics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "b0e7889f1b1eda45"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_mathematics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "da582b35c4bf1d03"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_microeconomics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "536acdd7215504fe"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_physics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "dad4eca037a60c47"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_psychology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "4334e2718bb3a40b"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_statistics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "b8e9ee7d04c1f3f8"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_us_history",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "9898bff8bf0da33d"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "high_school_world_history",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "7bc6897c1ad886c5"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "human_aging",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "8d6c00ed2cd60d8e"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "human_sexuality",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "e2dbebe685a8233a"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "international_law",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "74c39d84b2740ac6"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "jurisprudence",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "30241999021c8a10"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "logical_fallacies",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f65d6f4a4236abee"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "machine_learning",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "43ddde1813be4e9f"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "management",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "91c15f84eda754f9"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "marketing",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "8ae68060dbc57c5a"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "medical_genetics",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a937079f923db81c"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "miscellaneous",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "ca411d2cc3a3b57c"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "moral_disputes",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "fc1ad8e4522298d8"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "moral_scenarios",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f8618f6d3e96a1b5"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "nutrition",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "faf8758395cf46ba"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "philosophy",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1c9a94ff88dd0c16"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "prehistory",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "d536feaa2949a8e3"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "professional_accounting",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "9e9625827c7bded6"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "professional_law",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c36e72f1d6cb6e5f"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "professional_medicine",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "d1e11faf82469872"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "professional_psychology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "a445259986d2d927"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "public_relations",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c4c79891c4a06610"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "security_studies",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "f3f8511396432fe4"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "sociology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "ec8e27c2b3e16a55"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "us_foreign_policy",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "5082afc2b0bc4dbe"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "virology",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "6d133fea1047244b"
+        },
+        {
+          "name": "cais/mmlu",
+          "config": "world_religions",
+          "split": "test",
+          "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c70e10ede8186900"
+        }
+      ]
+    }
+  },
+  "theoremqa": {
+    "rows": 800,
+    "directory": "/lambda/nfs/dami/openact-data/prepared/theoremqa",
+    "prompt_variants": [
+      "zot"
+    ],
+    "empty_prompts": 0,
+    "duplicate_sample_ids": 0,
+    "image_questions": 53,
+    "prepared_manifest": {
+      "created_at": "2026-09-15T23:52:12.199733Z",
+      "task": "theoremqa",
+      "task_source": "TIGER-Lab/TheoremQA",
+      "task_type": "capability",
+      "split": "test",
+      "max_samples": null,
+      "language": "en",
+      "prompt_template_variant": "zot",
+      "task_config": {},
+      "prompt_template": {
+        "name": "theoremqa_zot",
+        "template": "Below is an instruction that describes a task, paired with an input that provides further context.\nWrite a response that appropriately completes the request.\n\n### Instruction:\nPlease read a math problem, and then think step by step to derive the answer. The answer is decided by Answer Type.\nIf the Answer type in [bool], the answer needs to be True or False.\nElse if the Answer type in [integer, float], The answer needs to be in numerical form.\nElse if the Answer type in [list of integer, list of float], the answer needs to be a list of number like [2, 3, 4].\nElse if the Answer type in [option], the answer needs to be an option like (a), (b), (c), (d).\nYou need to output the answer in your final sentence like 'Therefore, the answer is ...'.\n\n### Question: \n{question}\n\n### Answer_type: {answer_type}\n\n### Response:",
+        "variables": [
+          "question",
+          "answer_type"
+        ],
+        "description": "Type-aware ZoT; follows the original TheoremQA evaluation format.",
+        "answer_prefix": "Therefore, the answer is",
+        "language": "en",
+        "requested_language": "en",
+        "localization_mode": "base",
+        "supports_multilingual": false,
+        "hash": "de038d3bd0467ea5"
+      },
+      "dataset_sources": [
+        {
+          "name": "TIGER-Lab/TheoremQA",
+          "config": null,
+          "split": "test",
+          "revision": "a340b1782960a712843aae3ed25f1e013cc008a5",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "8003ee38f0368e2c"
+        }
+      ]
+    }
+  },
+  "belebele_en": {
+    "rows": 900,
+    "directory": "/lambda/nfs/dami/openact-data/prepared/belebele_en",
+    "prompt_variants": [
+      "zot"
+    ],
+    "empty_prompts": 0,
+    "duplicate_sample_ids": 0,
+    "prepared_manifest": {
+      "created_at": "2026-09-15T23:52:18.470020Z",
+      "task": "belebele",
+      "task_source": "facebook/belebele",
+      "task_type": "capability",
+      "split": "test",
+      "max_samples": null,
+      "language": "en",
+      "prompt_template_variant": "zot",
+      "task_config": {},
+      "prompt_template": {
+        "name": "belebele_zot",
+        "template": "Answer the following multiple choice reading-comprehension question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Please fully understand the passage and give explanations step by step before answering.\n\n{question}",
+        "variables": [
+          "question"
+        ],
+        "description": "Zero-shot-of-thought for passage-based 4-choice QA with all content in question field.",
+        "answer_prefix": "Answer",
+        "language": "en",
+        "requested_language": "en",
+        "localization_mode": "base",
+        "supports_multilingual": false,
+        "hash": "0af70cb3578f57b7"
+      },
+      "dataset_sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "eng_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "d7f980cf3dc06914"
+        }
+      ]
+    }
+  },
+  "belebele_de": {
+    "rows": 900,
+    "directory": "/lambda/nfs/dami/openact-data/prepared/belebele_de",
+    "prompt_variants": [
+      "zot"
+    ],
+    "empty_prompts": 0,
+    "duplicate_sample_ids": 0,
+    "prepared_manifest": {
+      "created_at": "2026-09-15T23:52:24.678766Z",
+      "task": "belebele",
+      "task_source": "facebook/belebele",
+      "task_type": "capability",
+      "split": "test",
+      "max_samples": null,
+      "language": "de",
+      "prompt_template_variant": "zot",
+      "task_config": {},
+      "prompt_template": {
+        "name": "belebele_zot",
+        "template": "Answer the following multiple choice reading-comprehension question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Please fully understand the passage and give explanations step by step before answering.\n\n{question}",
+        "variables": [
+          "question"
+        ],
+        "description": "Zero-shot-of-thought for passage-based 4-choice QA with all content in question field.",
+        "answer_prefix": "Answer",
+        "language": "en",
+        "requested_language": "de",
+        "localization_mode": "requested_only",
+        "supports_multilingual": false,
+        "hash": "0af70cb3578f57b7"
+      },
+      "dataset_sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "deu_Latn",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "1e847f17658c9366"
+        }
+      ]
+    }
+  },
+  "belebele_zh": {
+    "rows": 900,
+    "directory": "/lambda/nfs/dami/openact-data/prepared/belebele_zh",
+    "prompt_variants": [
+      "zot"
+    ],
+    "empty_prompts": 0,
+    "duplicate_sample_ids": 0,
+    "prepared_manifest": {
+      "created_at": "2026-09-15T23:52:30.925898Z",
+      "task": "belebele",
+      "task_source": "facebook/belebele",
+      "task_type": "capability",
+      "split": "test",
+      "max_samples": null,
+      "language": "zh",
+      "prompt_template_variant": "zot",
+      "task_config": {},
+      "prompt_template": {
+        "name": "belebele_zot",
+        "template": "Answer the following multiple choice reading-comprehension question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Please fully understand the passage and give explanations step by step before answering.\n\n{question}",
+        "variables": [
+          "question"
+        ],
+        "description": "Zero-shot-of-thought for passage-based 4-choice QA with all content in question field.",
+        "answer_prefix": "Answer",
+        "language": "en",
+        "requested_language": "zh",
+        "localization_mode": "requested_only",
+        "supports_multilingual": false,
+        "hash": "0af70cb3578f57b7"
+      },
+      "dataset_sources": [
+        {
+          "name": "facebook/belebele",
+          "config": "zho_Hans",
+          "split": "test",
+          "revision": "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2",
+          "streaming": false,
+          "cache_dir": null,
+          "fingerprint": "c81a0329329d2619"
+        }
+      ]
+    }
+  },
+  "wildjailbreak": {
+    "rows": 50050,
+    "directory": "/lambda/nfs/dami/openact-data/prepared/wildjailbreak",
+    "prompt_variants": [
+      "zot"
+    ],
+    "empty_prompts": 0,
+    "duplicate_sample_ids": 0,
+    "categories": [
+      "vanilla_harmful"
+    ],
+    "profiles": [
+      "greedy"
+    ],
+    "prepared_manifest": {
+      "created_at": "2026-09-16T02:09:47.862219Z",
+      "task": "wildjailbreak",
+      "task_source": "allenai/wildjailbreak",
+      "task_type": "safety",
+      "split": "harmful",
+      "max_samples": null,
+      "language": "en",
+      "prompt_template_variant": "zot",
+      "task_config": {},
+      "prompt_template": {
+        "name": "wildjailbreak_zot",
+        "template": "{prompt}\n\nPlease reason step by step.",
+        "variables": [
+          "prompt"
+        ],
+        "description": "Zero-shot CoT (project wording).",
+        "answer_prefix": "Answer",
+        "language": "en",
+        "requested_language": "en",
+        "localization_mode": "base",
+        "supports_multilingual": false,
+        "hash": "acf9a060a7978e0a"
+      },
+      "dataset_sources": [
+        {
+          "name": "allenai/wildjailbreak",
+          "config": "train",
+          "split": "train",
+          "revision": "5ddc12a7894f842b0619b8e1c7ee496b198af009",
+          "streaming": false,
+          "cache_dir": null,
+          "loader_kwargs": {
+            "delimiter": "\t",
+            "keep_default_na": false
+          },
+          "fingerprint": "d138844dac96ef7e"
+        }
+      ]
+    }
+  }
+}

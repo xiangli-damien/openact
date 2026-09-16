@@ -1,103 +1,88 @@
 # Lambda GPU workspace
 
-## Host
+The current experiment and measured readiness results are documented in
+[matrix_readiness.md](matrix_readiness.md). The earlier Qwen-only pilot remains
+available in [lambda_qwen2_check.json](lambda_qwen2_check.json).
 
-- SSH alias: `gpu2`, public IP `132.145.194.205`, user `ubuntu`.
-- Local key: `~/.ssh/lambda_gpu.pem`; agent forwarding supplies GitHub access.
-- Tailscale is not used for this connection.
-- GPU observed: NVIDIA A100-SXM4 **40GB**; driver `580.105.08`.
-- Initial disk: 497 GB root volume, approximately 472 GB free.
-- Remote checkout: `/home/ubuntu/openact`.
+## Connection and persistent paths
 
-Connect using `ssh gpu2`, or select `gpu2` in Cursor Remote-SSH.
+- SSH: `ssh gpu2` → `ubuntu@132.145.194.205`, direct public IP, no Tailscale.
+- Local SSH identity: `~/.ssh/lambda_gpu.pem`; agent forwarding provides GitHub access.
+- Actual GPU: **NVIDIA A100-SXM4 40GB**, driver 580.105.08.
+- Persistent Lambda filesystem: `/lambda/nfs/dami`; `~/dami` points there.
+- Active code: `/lambda/nfs/dami/openact`.
+- Prepared data: `/lambda/nfs/dami/openact-data/prepared`.
+- Results and logs: `/lambda/nfs/dami/openact/runs` and `logs`.
+- Code, previous results, and prepared data were copied from the home directories
+  and verified before using the persistent checkout. Home copies remain available.
+- The active `.venv` links to `/home/ubuntu/openact/.venv`. The environment and HF
+  weight cache remain on the instance disk; code and experiment outputs are persistent.
+- The volume reports a virtual capacity of 8 EiB; this is **not a verified quota**.
+  Compare the estimated storage in the matrix report with the actual Lambda allocation.
+
+Connect in Cursor with Remote-SSH → `gpu2`, then open `~/dami/openact`.
 
 ## Environment
 
-### Verified on this instance
+Python 3.11.16, PyTorch 2.14.0+cu130, Transformers 5.17.0, datasets 5.0.1,
+Zarr 2.18.7, numcodecs 0.13.1. CUDA and bf16 matrix operations were verified.
+The selected four generation models and Llama-Guard-3-8B are accessible and cached.
+The original LlamaGuard-7b returned 403; the user selected Guard 3 instead.
+No credentials are stored in the repository.
 
-- Python 3.11.16; PyTorch 2.14.0 + CUDA 13.0; Transformers 5.17.0.
-- CUDA and bf16 are available; a bf16 CUDA matrix multiplication passed.
-- All 55 runtime/configuration tests passed on the server.
-- Actual Qwen2-7B-Instruct collection passed: two 16-token samples, all 29 hidden
-  entries, prompt-last, generation means, and pre/post final RMSNorm.
-- Independent causal-prefix comparison: maximum relative L2 errors 1.97% and
-  2.65%, within the recorded 3% bf16 tolerance. Peak CUDA allocation was 15.26 GB.
-- Environment and raw check results: [lambda_environment.json](lambda_environment.json)
-  and [lambda_qwen2_check.json](lambda_qwen2_check.json).
-- Qwen2 weights are cached. Meta model weight requests return HTTP 401 until an
-  authorized HF account is configured; server HF authentication is currently absent.
-- No full dataset activation collection has been launched.
-
-Create an isolated Python 3.11 environment from the committed lockfile:
+For a new instance, recreate the environment from the committed lockfile (the
+existing instance already has a working environment):
 
 ```bash
-cd ~/openact
-python3 -m pip install --user uv
-export PATH="$HOME/.local/bin:$PATH"
+cd ~/dami/openact
 uv sync --frozen --extra dev --python 3.11
-uv run python -c 'import torch; print(torch.__version__, torch.version.cuda); assert torch.cuda.is_available(); assert torch.cuda.is_bf16_supported(); print(torch.cuda.get_device_name())'
-uv run openact config-check configs/capability.toml
+.venv/bin/python -c 'import torch; assert torch.cuda.is_available(); assert torch.cuda.is_bf16_supported(); print(torch.cuda.get_device_name())'
+.venv/bin/openact config-check configs/capability.toml
 ```
 
-The lockfile selects CUDA runtime 13.0 on Linux. NVIDIA documents driver 580 or
-newer as supporting CUDA 13.x minor-version compatibility; actual CUDA kernels
-must also pass the workspace smoke checks. See
-[NVIDIA's compatibility table](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html).
+On a replacement host, first replace a stale `.venv` symlink if its old instance
+path is absent. Authenticate interactively with `.venv/bin/hf auth login` when
+needed; do not put tokens in Git or command-line arguments.
 
-## Selected datasets
+## Selected data
 
-All selected data have been downloaded, rendered with `zot`, and written to
-`/home/ubuntu/openact-data/prepared`. Prepared Parquet row counts were checked:
+All selected inputs are prepared with `zot`, with pinned revisions and no empty
+prompts or duplicate sample IDs. See [matrix_datasets.json](matrix_datasets.json).
 
-| Directory | Rows |
-|---|---:|
-| `math` | 5,000 |
-| `mmlu` | 14,042 |
-| `theoremqa` | 800 (53 image questions marked) |
-| `belebele_en`, `belebele_de`, `belebele_zh`, `belebele_ar`, `belebele_es` | 900 each |
+| Folder | Rows | Models |
+|---|---:|---|
+| `math` | 5,000 | All four |
+| `mmlu` | 14,042 | All four |
+| `belebele_en`, `belebele_de`, `belebele_zh` | 900 each | All four |
+| `theoremqa` | 800, including 53 image questions | All four, text input only |
+| `wildjailbreak` | 50,050 Vanilla Harmful train prompts | Llama-2 only |
 
-See [lambda_datasets.json](lambda_datasets.json). Each prepared directory also
-contains the prompt template and pinned dataset sources in `prepared_manifest.json`.
-To collect directly from these frozen prompts:
+The previously prepared Arabic/Spanish files are retained but excluded from the
+current three-language matrix. The configuration is
+[experiment_matrix.toml](../configs/experiment_matrix.toml); the 20-example
+research configuration is a separate demo setting.
+
+## Commands
 
 ```bash
-uv run openact collect --config configs/capability.toml \
-  --task prepared --prepared-path /home/ubuntu/openact-data/prepared/mmlu \
-  --output runs/mmlu_qwen2_prepared
+cd ~/dami/openact
+git fetch origin
+git merge --ff-only origin/main
+
+# Three deterministic samples per cell; full 2,048-token budget.
+.venv/bin/python scripts/run_collection_matrix.py --output runs/matrix_smoke_new
+
+# Recheck existing activations and refresh evaluation labels without generation.
+.venv/bin/python scripts/recheck_collection_matrix.py \
+  runs/matrix_smoke_new/matrix_report.json \
+  --output runs/matrix_smoke_new/matrix_report_rechecked.json
+
+# Full matrix; this is a long, large collection and has NOT been started.
+.venv/bin/python scripts/run_collection_matrix.py --full --output runs/matrix_full_new
 ```
 
-That command launches a full collection; it has not been run during setup.
-
-The [full capability configuration](../configs/capability.toml) defaults to Qwen2,
-full MMLU, greedy zero-shot CoT, bf16 inference, and float32 all-layer storage with
-both final RMSNorm sides. It has no sample limit. Safety is deferred.
-
-```bash
-# MMLU: all 14,042 test examples
-uv run openact collect --config configs/capability.toml
-
-# TheoremQA: all 800; 53 image questions retain text and image-presence metadata
-uv run openact collect --config configs/capability.toml \
-  --task theoremqa --output runs/theoremqa_qwen2
-
-# BELEBELE: Qwen2, five languages, 900 examples per language
-for lang in en de zh ar es; do
-  uv run openact collect --config configs/capability.toml \
-    --task belebele --language "$lang" --output "runs/belebele_qwen2_$lang" || break
-done
-```
-
-These are full collection commands; environment preparation does not launch them.
-Use a short GPU acceptance check first:
-
-```bash
-uv run python scripts/check_paper_collection.py --model qwen2 --output runs/qwen2_check
-```
-
-Meta checkpoints require a Hugging Face account with the relevant model access.
-If authentication is needed, run `uv run hf auth login` interactively on the GPU.
-Never commit tokens. Qwen2 is public.
-
-All-layer token storage can exceed the current disk capacity over a full dataset.
-Measure the actual bytes per sample in the smoke run, then plan output storage
-before starting the full jobs; see [paper_collection.md](paper_collection.md).
+Output folders must be fresh. There is no resume support. Use `tmux` for long
+runs so an SSH disconnection does not end the process. Optional `--models qwen2`
+(or `llama32`, `llama3`, `llama2`) limits the matrix to selected models.
+The full command also evaluates capability responses and labels Safety with
+Guard 3 after unloading generation models. GMM/ICL/FAR analysis remains external.

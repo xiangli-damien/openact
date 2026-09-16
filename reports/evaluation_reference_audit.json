@@ -1,0 +1,32 @@
+{
+  "math": {
+    "task": "math",
+    "rows": 5000,
+    "failures": []
+  },
+  "mmlu": {
+    "task": "mmlu",
+    "rows": 14042,
+    "failures": []
+  },
+  "belebele_en": {
+    "task": "belebele",
+    "rows": 900,
+    "failures": []
+  },
+  "belebele_de": {
+    "task": "belebele",
+    "rows": 900,
+    "failures": []
+  },
+  "belebele_zh": {
+    "task": "belebele",
+    "rows": 900,
+    "failures": []
+  },
+  "theoremqa": {
+    "task": "theoremqa",
+    "rows": 800,
+    "failures": []
+  }
+}

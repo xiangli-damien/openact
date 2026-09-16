@@ -1,4 +1,9 @@
-# OpenAct readiness audit — 2026-09-15
+# Initial package audit (historical)
+
+The current dataset matrix, confirmed Guard 3 judge, GPU results, and disk/time
+estimates are in [matrix_readiness.md](matrix_readiness.md). The checkpoints and
+access limitations below describe the initial audit, before the full matrix pilot.
+
 
 ## Result
 

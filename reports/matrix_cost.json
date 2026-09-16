@@ -1,0 +1,1177 @@
+{
+  "method": "Per-cell observed seconds/sample and bytes/sample times full row count",
+  "scope": "One GPU, sequential models, all layers, float32 raw storage, both final norm sides",
+  "caveats": [
+    "Three-sample cells are a coarse pilot, not a benchmark-quality timing study.",
+    "Length-capped samples do not establish natural completion lengths.",
+    "Token scenarios hold measured seconds/byte cost per token constant; prefill and IO vary.",
+    "Includes stored-array scans and first/longest-sample replay per cell; excludes downloads, model loading and retries.",
+    "Cached pilot reads and provider storage performance may differ during a large run.",
+    "GB/TB are decimal; filesystem quotas and provider charges are separate."
+  ],
+  "rows": [
+    {
+      "model": "llama32",
+      "dataset": "math",
+      "full_samples": 5000,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        235,
+        883,
+        235
+      ],
+      "mean_response_tokens": 451.0,
+      "pilot_limit_hits": 0,
+      "collection_hours": 14.8794776863522,
+      "evaluation_hours": 0.0016040412034541347,
+      "verification_hours": 0.19677471654128537,
+      "stored_gb": 129.19793,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 4.223000318964704,
+          "stored_gb": 36.66814864745011
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 8.446000637929409,
+          "stored_gb": 73.33629729490022
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 16.892001275858817,
+          "stored_gb": 146.67259458980044
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 33.784002551717634,
+          "stored_gb": 293.3451891796009
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 67.56800510343527,
+          "stored_gb": 586.6903783592018
+        }
+      ]
+    },
+    {
+      "model": "llama32",
+      "dataset": "mmlu",
+      "full_samples": 14042,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        266,
+        44,
+        334
+      ],
+      "mean_response_tokens": 214.66666666666666,
+      "pilot_limit_hits": 0,
+      "collection_hours": 22.514493328465356,
+      "evaluation_hours": 0.0021755140593423105,
+      "verification_hours": 0.3350324938291659,
+      "stored_gb": 176.0968932146667,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 13.424791052997977,
+          "stored_gb": 105.00187421495653
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 26.849582105995953,
+          "stored_gb": 210.00374842991306
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 53.699164211991906,
+          "stored_gb": 420.0074968598261
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 107.39832842398381,
+          "stored_gb": 840.0149937196522
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 214.79665684796763,
+          "stored_gb": 1680.0299874393045
+        }
+      ]
+    },
+    {
+      "model": "llama32",
+      "dataset": "belebele_en",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        234,
+        130,
+        213
+      ],
+      "mean_response_tokens": 192.33333333333334,
+      "pilot_limit_hits": 0,
+      "collection_hours": 1.4312044382095337,
+      "evaluation_hours": 0.00017784041665436234,
+      "verification_hours": 0.01997398535445326,
+      "stored_gb": 10.1439975,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 0.9524826763820814,
+          "stored_gb": 6.7509446100519925
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 1.9049653527641628,
+          "stored_gb": 13.501889220103985
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 3.8099307055283256,
+          "stored_gb": 27.00377844020797
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 7.619861411056651,
+          "stored_gb": 54.00755688041594
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 15.239722822113302,
+          "stored_gb": 108.01511376083188
+        }
+      ]
+    },
+    {
+      "model": "llama32",
+      "dataset": "belebele_de",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        285,
+        420,
+        394
+      ],
+      "mean_response_tokens": 366.3333333333333,
+      "pilot_limit_hits": 0,
+      "collection_hours": 2.184812605381012,
+      "evaluation_hours": 0.00015089566659298725,
+      "verification_hours": 0.029444455243304017,
+      "stored_gb": 19.1288754,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 0.7633922115253036,
+          "stored_gb": 6.6837926784349415
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 1.5267844230506071,
+          "stored_gb": 13.367585356869883
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 3.0535688461012143,
+          "stored_gb": 26.735170713739766
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 6.1071376922024285,
+          "stored_gb": 53.47034142747953
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 12.214275384404857,
+          "stored_gb": 106.94068285495906
+        }
+      ]
+    },
+    {
+      "model": "llama32",
+      "dataset": "belebele_zh",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        36,
+        135,
+        310
+      ],
+      "mean_response_tokens": 160.33333333333334,
+      "pilot_limit_hits": 0,
+      "collection_hours": 1.1620465517044067,
+      "evaluation_hours": 0.0001393553334310127,
+      "verification_hours": 0.017172700492467607,
+      "stored_gb": 8.5022025,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 0.9277045236060129,
+          "stored_gb": 6.787621122661124
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 1.8554090472120257,
+          "stored_gb": 13.575242245322247
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 3.7108180944240514,
+          "stored_gb": 27.150484490644494
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 7.421636188848103,
+          "stored_gb": 54.30096898128899
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 14.843272377696206,
+          "stored_gb": 108.60193796257798
+        }
+      ]
+    },
+    {
+      "model": "llama32",
+      "dataset": "theoremqa",
+      "full_samples": 800,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        279,
+        2048,
+        263
+      ],
+      "mean_response_tokens": 863.3333333333334,
+      "pilot_limit_hits": 1,
+      "collection_hours": 4.236912533088967,
+      "evaluation_hours": 0.00017963577772240604,
+      "verification_hours": 0.051090181836259574,
+      "stored_gb": 39.4549176,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 0.6281754489212986,
+          "stored_gb": 5.849686624864865
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 1.2563508978425972,
+          "stored_gb": 11.69937324972973
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 2.5127017956851945,
+          "stored_gb": 23.39874649945946
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 5.025403591370389,
+          "stored_gb": 46.79749299891892
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 10.050807182740778,
+          "stored_gb": 93.59498599783784
+        }
+      ]
+    },
+    {
+      "model": "qwen2",
+      "dataset": "math",
+      "full_samples": 5000,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        639,
+        848,
+        297
+      ],
+      "mean_response_tokens": 594.6666666666666,
+      "pilot_limit_hits": 0,
+      "collection_hours": 35.98937679220129,
+      "evaluation_hours": 0.08932229953660244,
+      "verification_hours": 0.6677546829382515,
+      "stored_gb": 490.953475,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 7.746592314016421,
+          "stored_gb": 105.67608430493273
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 15.493184628032841,
+          "stored_gb": 211.35216860986546
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 30.986369256065682,
+          "stored_gb": 422.7043372197309
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 61.972738512131365,
+          "stored_gb": 845.4086744394618
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 123.94547702426273,
+          "stored_gb": 1690.8173488789237
+        }
+      ]
+    },
+    {
+      "model": "qwen2",
+      "dataset": "mmlu",
+      "full_samples": 14042,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        191,
+        72,
+        240
+      ],
+      "mean_response_tokens": 167.66666666666666,
+      "pilot_limit_hits": 0,
+      "collection_hours": 37.49746400449011,
+      "evaluation_hours": 0.002362691317839226,
+      "verification_hours": 0.6741461199991675,
+      "stored_gb": 396.498856754,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 28.62629458792088,
+          "stored_gb": 302.6949522734314
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 57.25258917584176,
+          "stored_gb": 605.3899045468628
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 114.50517835168353,
+          "stored_gb": 1210.7798090937256
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 229.01035670336705,
+          "stored_gb": 2421.559618187451
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 458.0207134067341,
+          "stored_gb": 4843.119236374902
+        }
+      ]
+    },
+    {
+      "model": "qwen2",
+      "dataset": "belebele_en",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        234,
+        177,
+        106
+      ],
+      "mean_response_tokens": 172.33333333333334,
+      "pilot_limit_hits": 0,
+      "collection_hours": 2.6778992215792337,
+      "evaluation_hours": 0.0001418744166888549,
+      "verification_hours": 0.06692689260256177,
+      "stored_gb": 26.2222767,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.9890005823721968,
+          "stored_gb": 19.476507258800773
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 3.9780011647443936,
+          "stored_gb": 38.953014517601545
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 7.956002329488787,
+          "stored_gb": 77.90602903520309
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 15.912004658977574,
+          "stored_gb": 155.81205807040618
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 31.82400931795515,
+          "stored_gb": 311.62411614081236
+        }
+      ]
+    },
+    {
+      "model": "qwen2",
+      "dataset": "belebele_de",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        166,
+        55,
+        323
+      ],
+      "mean_response_tokens": 181.33333333333334,
+      "pilot_limit_hits": 0,
+      "collection_hours": 2.789872924486796,
+      "evaluation_hours": 0.00014435458327473802,
+      "verification_hours": 0.05685367381035121,
+      "stored_gb": 27.5562963,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.9693220643436207,
+          "stored_gb": 19.451503270588237
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 3.9386441286872413,
+          "stored_gb": 38.903006541176474
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 7.877288257374483,
+          "stored_gb": 77.80601308235295
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 15.754576514748965,
+          "stored_gb": 155.6120261647059
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 31.50915302949793,
+          "stored_gb": 311.2240523294118
+        }
+      ]
+    },
+    {
+      "model": "qwen2",
+      "dataset": "belebele_zh",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        187,
+        54,
+        374
+      ],
+      "mean_response_tokens": 205.0,
+      "pilot_limit_hits": 0,
+      "collection_hours": 3.110733449459076,
+      "evaluation_hours": 0.00020225758332041247,
+      "verification_hours": 0.05399605137120539,
+      "stored_gb": 31.0730064,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.942311617223228,
+          "stored_gb": 19.40168204487805
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 3.884623234446456,
+          "stored_gb": 38.8033640897561
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 7.769246468892912,
+          "stored_gb": 77.6067281795122
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 15.538492937785824,
+          "stored_gb": 155.2134563590244
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 31.076985875571648,
+          "stored_gb": 310.4269127180488
+        }
+      ]
+    },
+    {
+      "model": "qwen2",
+      "dataset": "theoremqa",
+      "full_samples": 800,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        252,
+        745,
+        492
+      ],
+      "mean_response_tokens": 496.3333333333333,
+      "pilot_limit_hits": 0,
+      "collection_hours": 5.016645714088723,
+      "evaluation_hours": 0.0001757527407554099,
+      "verification_hours": 0.08505023932317272,
+      "stored_gb": 65.89201813333334,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.2937487939624375,
+          "stored_gb": 16.992971768435194
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 2.587497587924875,
+          "stored_gb": 33.98594353687039
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 5.17499517584975,
+          "stored_gb": 67.97188707374077
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 10.3499903516995,
+          "stored_gb": 135.94377414748155
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 20.699980703399,
+          "stored_gb": 271.8875482949631
+        }
+      ]
+    },
+    {
+      "model": "llama3",
+      "dataset": "math",
+      "full_samples": 5000,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        122,
+        275,
+        105
+      ],
+      "mean_response_tokens": 167.33333333333334,
+      "pilot_limit_hits": 0,
+      "collection_hours": 17.984536510926706,
+      "evaluation_hours": 0.003114895370917684,
+      "verification_hours": 0.2976979554815049,
+      "stored_gb": 179.34914833333335,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 13.757095657760669,
+          "stored_gb": 137.19138039840638
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 27.514191315521337,
+          "stored_gb": 274.38276079681276
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 55.028382631042675,
+          "stored_gb": 548.7655215936255
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 110.05676526208535,
+          "stored_gb": 1097.531043187251
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 220.1135305241707,
+          "stored_gb": 2195.062086374502
+        }
+      ]
+    },
+    {
+      "model": "llama3",
+      "dataset": "mmlu",
+      "full_samples": 14042,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        90,
+        127,
+        182
+      ],
+      "mean_response_tokens": 133.0,
+      "pilot_limit_hits": 0,
+      "collection_hours": 42.37571182259807,
+      "evaluation_hours": 0.002113452318157956,
+      "verification_hours": 0.8405482370548537,
+      "stored_gb": 404.2606096993334,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 40.78263994956807,
+          "stored_gb": 389.0628424174035
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 81.56527989913614,
+          "stored_gb": 778.125684834807
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 163.1305597982723,
+          "stored_gb": 1556.251369669614
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 326.2611195965446,
+          "stored_gb": 3112.502739339228
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 652.5222391930891,
+          "stored_gb": 6225.005478678456
+        }
+      ]
+    },
+    {
+      "model": "llama3",
+      "dataset": "belebele_en",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        303,
+        164,
+        211
+      ],
+      "mean_response_tokens": 226.0,
+      "pilot_limit_hits": 0,
+      "collection_hours": 3.4745673139890036,
+      "evaluation_hours": 0.00014747649993296363,
+      "verification_hours": 0.0680190886113193,
+      "stored_gb": 43.6941999,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.9678965318167807,
+          "stored_gb": 24.74715746548673
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 3.9357930636335614,
+          "stored_gb": 49.49431493097346
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 7.871586127267123,
+          "stored_gb": 98.98862986194692
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 15.743172254534246,
+          "stored_gb": 197.97725972389384
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 31.48634450906849,
+          "stored_gb": 395.9545194477877
+        }
+      ]
+    },
+    {
+      "model": "llama3",
+      "dataset": "belebele_de",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        293,
+        203,
+        307
+      ],
+      "mean_response_tokens": 267.6666666666667,
+      "pilot_limit_hits": 0,
+      "collection_hours": 3.9566903114318848,
+      "evaluation_hours": 0.00014944891669680752,
+      "verification_hours": 0.08283088278957167,
+      "stored_gb": 51.6391032,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.8921159148067792,
+          "stored_gb": 24.694166411955166
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 3.7842318296135584,
+          "stored_gb": 49.38833282391033
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 7.568463659227117,
+          "stored_gb": 98.77666564782066
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 15.136927318454234,
+          "stored_gb": 197.55333129564133
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 30.273854636908467,
+          "stored_gb": 395.10666259128266
+        }
+      ]
+    },
+    {
+      "model": "llama3",
+      "dataset": "belebele_zh",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        180,
+        223,
+        404
+      ],
+      "mean_response_tokens": 269.0,
+      "pilot_limit_hits": 0,
+      "collection_hours": 4.657212456067403,
+      "evaluation_hours": 0.0001465479999751551,
+      "verification_hours": 0.08288100903071002,
+      "stored_gb": 51.8319,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 2.2160713545599537,
+          "stored_gb": 24.663506319702602
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 4.4321427091199075,
+          "stored_gb": 49.327012639405204
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 8.864285418239815,
+          "stored_gb": 98.65402527881041
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 17.72857083647963,
+          "stored_gb": 197.30805055762082
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 35.45714167295926,
+          "stored_gb": 394.61610111524163
+        }
+      ]
+    },
+    {
+      "model": "llama3",
+      "dataset": "theoremqa",
+      "full_samples": 800,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        230,
+        667,
+        356
+      ],
+      "mean_response_tokens": 417.6666666666667,
+      "pilot_limit_hits": 0,
+      "collection_hours": 5.067053688897027,
+      "evaluation_hours": 0.00014996303704080036,
+      "verification_hours": 0.1162004334086561,
+      "stored_gb": 70.61437146666667,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.552872000428139,
+          "stored_gb": 21.640797001755786
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 3.105744000856278,
+          "stored_gb": 43.28159400351157
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 6.211488001712556,
+          "stored_gb": 86.56318800702314
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 12.422976003425113,
+          "stored_gb": 173.1263760140463
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 24.845952006850226,
+          "stored_gb": 346.2527520280926
+        }
+      ]
+    },
+    {
+      "model": "llama2",
+      "dataset": "math",
+      "full_samples": 5000,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        455,
+        262,
+        245
+      ],
+      "mean_response_tokens": 320.6666666666667,
+      "pilot_limit_hits": 0,
+      "collection_hours": 24.58857364124722,
+      "evaluation_hours": 0.006566503240416448,
+      "verification_hours": 0.4881810224168788,
+      "stored_gb": 340.4158483333334,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 9.814981578210949,
+          "stored_gb": 135.88324923076925
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 19.629963156421898,
+          "stored_gb": 271.7664984615385
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 39.259926312843795,
+          "stored_gb": 543.532996923077
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 78.51985262568759,
+          "stored_gb": 1087.065993846154
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 157.03970525137518,
+          "stored_gb": 2174.131987692308
+        }
+      ]
+    },
+    {
+      "model": "llama2",
+      "dataset": "mmlu",
+      "full_samples": 14042,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        177,
+        183,
+        361
+      ],
+      "mean_response_tokens": 240.33333333333334,
+      "pilot_limit_hits": 0,
+      "collection_hours": 58.00173308690389,
+      "evaluation_hours": 0.002262708375704245,
+      "verification_hours": 1.4233221385749235,
+      "stored_gb": 720.9044051486668,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 30.89135298941899,
+          "stored_gb": 383.94908679207765
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 61.78270597883798,
+          "stored_gb": 767.8981735841553
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 123.56541195767596,
+          "stored_gb": 1535.7963471683106
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 247.13082391535193,
+          "stored_gb": 3071.592694336621
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 494.26164783070385,
+          "stored_gb": 6143.185388673242
+        }
+      ]
+    },
+    {
+      "model": "llama2",
+      "dataset": "belebele_en",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        184,
+        168,
+        198
+      ],
+      "mean_response_tokens": 183.33333333333334,
+      "pilot_limit_hits": 0,
+      "collection_hours": 3.239693264166514,
+      "evaluation_hours": 0.00014182533323037205,
+      "verification_hours": 0.06965994374112396,
+      "stored_gb": 35.449989,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 2.261894933527166,
+          "stored_gb": 24.750537774545457
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 4.523789867054332,
+          "stored_gb": 49.50107554909091
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 9.047579734108664,
+          "stored_gb": 99.00215109818183
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 18.09515946821733,
+          "stored_gb": 198.00430219636365
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 36.19031893643466,
+          "stored_gb": 396.0086043927273
+        }
+      ]
+    },
+    {
+      "model": "llama2",
+      "dataset": "belebele_de",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        370,
+        278,
+        460
+      ],
+      "mean_response_tokens": 369.3333333333333,
+      "pilot_limit_hits": 0,
+      "collection_hours": 5.476417859395345,
+      "evaluation_hours": 0.0001521713332598059,
+      "verification_hours": 0.10972526476588933,
+      "stored_gb": 70.6912599,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.8979643122814192,
+          "stored_gb": 24.499498015884477
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 3.7959286245628383,
+          "stored_gb": 48.998996031768954
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 7.591857249125677,
+          "stored_gb": 97.99799206353791
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 15.183714498251353,
+          "stored_gb": 195.99598412707581
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 30.367428996502706,
+          "stored_gb": 391.99196825415163
+        }
+      ]
+    },
+    {
+      "model": "llama2",
+      "dataset": "belebele_zh",
+      "full_samples": 900,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        182,
+        145,
+        455
+      ],
+      "mean_response_tokens": 260.6666666666667,
+      "pilot_limit_hits": 0,
+      "collection_hours": 4.002628147602081,
+      "evaluation_hours": 0.0001511664166476597,
+      "verification_hours": 0.11846769799509224,
+      "stored_gb": 50.126847,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.9654849215846537,
+          "stored_gb": 24.6147177084399
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 3.9309698431693074,
+          "stored_gb": 49.2294354168798
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 7.861939686338615,
+          "stored_gb": 98.4588708337596
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 15.72387937267723,
+          "stored_gb": 196.9177416675192
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 31.44775874535446,
+          "stored_gb": 393.8354833350384
+        }
+      ]
+    },
+    {
+      "model": "llama2",
+      "dataset": "theoremqa",
+      "full_samples": 800,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        44,
+        408,
+        298
+      ],
+      "mean_response_tokens": 250.0,
+      "pilot_limit_hits": 0,
+      "collection_hours": 3.290999907034415,
+      "evaluation_hours": 0.00014999051860218904,
+      "verification_hours": 0.062251955353521134,
+      "stored_gb": 42.425018933333334,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 1.6849919524016206,
+          "stored_gb": 21.721609693866668
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 3.369983904803241,
+          "stored_gb": 43.443219387733336
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 6.739967809606482,
+          "stored_gb": 86.88643877546667
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 13.479935619212965,
+          "stored_gb": 173.77287755093334
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 26.95987123842593,
+          "stored_gb": 347.5457551018667
+        }
+      ]
+    },
+    {
+      "model": "llama2",
+      "dataset": "wildjailbreak",
+      "full_samples": 50050,
+      "pilot_samples": 3,
+      "pilot_response_tokens": [
+        520,
+        218,
+        271
+      ],
+      "mean_response_tokens": 336.3333333333333,
+      "pilot_limit_hits": 0,
+      "collection_hours": 255.0043015193056,
+      "evaluation_hours": 6.167978006001779,
+      "verification_hours": 5.732119383468091,
+      "stored_gb": 3587.2461958666663,
+      "eval_verified": true,
+      "scenarios": [
+        {
+          "response_tokens": 128,
+          "collection_hours": 97.0482178230063,
+          "stored_gb": 1365.2155988233894
+        },
+        {
+          "response_tokens": 256,
+          "collection_hours": 194.0964356460126,
+          "stored_gb": 2730.431197646779
+        },
+        {
+          "response_tokens": 512,
+          "collection_hours": 388.1928712920252,
+          "stored_gb": 5460.862395293558
+        },
+        {
+          "response_tokens": 1024,
+          "collection_hours": 776.3857425840504,
+          "stored_gb": 10921.724790587115
+        },
+        {
+          "response_tokens": 2048,
+          "collection_hours": 1552.7714851681008,
+          "stored_gb": 21843.44958117423
+        }
+      ]
+    }
+  ],
+  "missing_cells": [],
+  "totals": {
+    "full_samples": 140218,
+    "collection_hours": 564.611058779072,
+    "evaluation_hours": 6.280000667998039,
+    "verification_hours": 11.74612120603378,
+    "total_hours": 582.6371806531038,
+    "stored_tb": 7.069369642283335,
+    "planning_hours_with_50pct_headroom": 873.9557709796557,
+    "planning_tb_with_50pct_headroom": 10.604054463425001
+  },
+  "scenario_totals": [
+    {
+      "response_tokens": 128,
+      "collection_hours": 272.22039611160767,
+      "stored_tb": 3.254069916873169
+    },
+    {
+      "response_tokens": 256,
+      "collection_hours": 544.4407922232153,
+      "stored_tb": 6.508139833746338
+    },
+    {
+      "response_tokens": 512,
+      "collection_hours": 1088.8815844464307,
+      "stored_tb": 13.016279667492675
+    },
+    {
+      "response_tokens": 1024,
+      "collection_hours": 2177.7631688928614,
+      "stored_tb": 26.03255933498535
+    },
+    {
+      "response_tokens": 2048,
+      "collection_hours": 4355.526337785723,
+      "stored_tb": 52.0651186699707
+    }
+  ]
+}

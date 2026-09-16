@@ -1,11 +1,11 @@
 {
   "summary": {
-    "passed": 197,
+    "passed": 213,
     "skipped": 12,
-    "total": 209,
-    "collected": 209
+    "total": 225,
+    "collected": 225
   },
-  "duration_seconds": 30.210267066955566,
+  "duration_seconds": 27.363879919052124,
   "versions": {
     "torch": "2.14.0",
     "transformers": "5.17.0",
@@ -858,6 +858,70 @@
     {
       "name": "tests/test_11_config_and_integrity.py::test_evaluation_pipeline_persists_and_refreshes_labels",
       "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_wildjailbreak_filters_exact_variant_and_never_uses_completion",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_wildjailbreak_cli_defaults_to_one_greedy_generation",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_explicit_theoremqa_parser_uses_row_type[bool-True-Answer: True]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_explicit_theoremqa_parser_uses_row_type[list of integer-[2, 3]-Answer: [2, 3]]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_explicit_theoremqa_parser_uses_row_type[float-1.5-Answer: 1.5]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_context_budget_is_clamped_and_prompt_is_never_truncated",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_math_preserves_textual_answers[\\\\text{Evelyn}-\\\\text{Evelyn}-True]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_math_preserves_textual_answers[\\\\text{June 20}-June 20-True]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_math_preserves_textual_answers[\\\\text{odd}-\\\\text{even}-False]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_math_preserves_textual_answers[\\\\text{(C)}-\\\\text{(D)}-False]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_math_preserves_textual_answers[\\\\text{13}-13-True]",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_matrix_has_twenty_five_cells_and_shared_sampling",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_guard_safety_is_not_refusal_and_absent_splits_are_not_rates",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_guard_probability_uses_label_step_after_newline",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_writer_finalizes_partial_pointer_table_across_chunk_boundary",
+      "outcome": "passed"
+    },
+    {
+      "name": "tests/test_12_matrix.py::test_cost_estimate_scales_each_cell_without_double_counting",
+      "outcome": "passed"
     }
   ],
   "paper_compatibility_run": {
@@ -872,5 +936,12 @@
     "scope": "tests/test_10_runtime.py and tests/test_11_config_and_integrity.py",
     "result": "55 passed in 11.47s",
     "cuda_collection_report": "lambda_qwen2_check.json"
+  },
+  "matrix_runtime_run": {
+    "scope": "tests/test_10_runtime.py, tests/test_11_config_and_integrity.py, tests/test_12_matrix.py",
+    "lambda_result": "71 passed in 10.62s",
+    "latest_safety_metrics_regression": "16 passed in 2.95s",
+    "gpu_matrix_report": "matrix_smoke.json",
+    "current_writer_gpu_report": "current_writer_check.json"
   }
 }

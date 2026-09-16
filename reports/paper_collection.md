@@ -8,14 +8,16 @@ Table 1, Table 3, and Appendix A.2 (pages 3, 7–8, 13).
 
 ### Current experiment choices (user update)
 
-Use the full MMLU test set (14,042), and the full TheoremQA set (800). TheoremQA
-image questions are retained with `has_image` and `image_input_policy` metadata;
-these text-only models receive the question text, not the image. BELEBELE uses
-Qwen2-7B-Instruct for English, German, Chinese, Arabic, and Spanish, 900 examples
-each (4,500 total). Safety collection is deferred. These choices supersede the
-unresolved subset questions below and deliberately differ from the draft counts.
-Use [capability.toml](../configs/capability.toml) for full datasets; the research
-configuration retains a 20-example smoke limit.
+The current matrix is four generation models, each with MATH 5,000, MMLU
+14,042, BELEBELE English/German/Chinese 900 each, and TheoremQA 800.
+Llama-2 additionally collects all 50,050 WildJailbreak `vanilla_harmful` train
+prompts. All use greedy zero-shot CoT (`zot`). Safety is labeled by the confirmed
+`meta-llama/Llama-Guard-3-8B`, with an immutable revision in the matrix TOML.
+TheoremQA retains all 53 image questions with image-presence metadata; these
+text-only models receive only the question text. See [matrix readiness](matrix_readiness.md)
+for the latest GPU checks, timings, storage estimates, and persistent paths.
+Use [experiment_matrix.toml](../configs/experiment_matrix.toml) for this matrix.
+The earlier five-language Qwen-only plan is superseded.
 
 The collector supports the paper's three representation inputs: prompt-last,
 generation-average, and prefix-average, across every layer including embeddings.
@@ -26,9 +28,9 @@ Its default task is MATH, with a 20-sample limit for an initial run.
 CPU numerical tests check the Llama 2, Llama 3, Llama 3.2 (including its scaled
 RoPE), and Qwen2 implementations, with eager attention and SDPA. These use tiny
 random models. Actual model tokenizers/configurations were checked separately.
-**Qwen2-7B-Instruct has now passed a two-sample CUDA/bf16 collection check on an
-A100 40GB.** Other full-size checkpoints and exact reproduction of the paper's
-results remain unverified. See [the Lambda setup report](lambda_gpu_setup.md).
+The initial two-sample Qwen2 CUDA check is retained as historical evidence.
+The latest full-size checkpoint and dataset checks are in [matrix readiness](matrix_readiness.md).
+Execution checks do not establish exact reproduction of paper results.
 
 Verification: 197 tests passed / 12 existing-run tests skipped on Transformers
 5.17.0; all 53 updated runtime/config tests also passed on 4.57.6. The dataset
@@ -50,8 +52,9 @@ revisions are recorded in [data_and_prompts.json](data_and_prompts.json).
 | `meta-llama/Llama-2-7b-chat-hf` | 32 | 33 | `(T, 33, 4096)` | Safety prediction |
 
 Llama Guard is a response-labeling judge, not one of these activation-collection
-models. The user-selected original `meta-llama/LlamaGuard-7b` remains provisional;
-its gated tokenizer was inaccessible during the earlier audit.
+models. The selected judge is `meta-llama/Llama-Guard-3-8B`. The original paper judge
+`meta-llama/LlamaGuard-7b` is inaccessible to this account; using Guard 3 is an
+explicit experiment choice, not an exact reproduction of that judge.
 
 ## Position and layer conventions
 
@@ -129,8 +132,9 @@ runs, and compares all layers, both RMSNorm sides, prompt-last, and every genera
 token with independent causal-prefix forwards. It also checks token IDs, means,
 chat formatting, dimensions, and storage validity. It writes `verification.json`
 with checkpoint revisions, measured errors, and peak CUDA allocation. A failure
-exits nonzero. Numerical tolerance is a maximum 3% relative L2 vector error to
-allow bf16 kernel variation across sequence lengths; it is recorded in the report.
+exits nonzero. Exact equality is required for full-sequence replay and same-length future-token
+perturbations. Variable-length prefix errors are recorded separately as bf16
+rounding diagnostics; the earlier fixed 3% threshold is no longer a pass criterion.
 
 Select one model with `--model qwen2` (also `llama32`, `llama3`, `llama2`). The
 default 16-token check is a correctness smoke test, not a long-context memory test.
@@ -145,18 +149,13 @@ uv run openact collect --config configs/research.toml \
 uv run openact-validate runs/math_qwen2 --strict
 ```
 
-Change `--model` to the Llama 3.2 or Llama 3 ID for their MATH runs. Safety:
-
-```bash
-uv run openact collect --config configs/research.toml \
-  --model meta-llama/Llama-2-7b-chat-hf --task jbb --template zot \
-  --max-samples 200 --output runs/jbb_llama2
-```
-
-This JBB command uses all 200 registered goal prompts, not a claimed reconstruction
-of the paper's unspecified goal/artifact selection. The `zot` safety wrapper now
-actually appends `Please reason step by step.`; `raw` preserves the original
-prompt. The paper does not provide the exact CoT wording.
+The active safety run is WildJailbreak Vanilla Harmful on Llama-2, selected in
+[experiment_matrix.toml](../configs/experiment_matrix.toml), followed by Guard 3
+response labeling. It uses the original `vanilla` field only, filtered by exact
+`data_type == "vanilla_harmful"`; reference completions and adversarial rewrites
+are not model inputs. `zot` appends `Please reason step by step.` The paper does
+not provide exact CoT wording. Use the matrix commands in
+[matrix readiness](matrix_readiness.md) to reproduce the selected experiment.
 
 All-layer storage is substantial. Uncompressed float32 per-token activations,
 including separate pre/post RMS arrays, cost about 156 KB/token (Llama 3.2),
@@ -172,7 +171,7 @@ in the paper; inspect `finish_reason="length"` when choosing your run budget.
 |---|---|
 | MATH, 5,000 examples | Canonical evaluation categories total 5,000; supported. |
 | MMLU, 14,000 examples | User selected all 14,042 test rows for this experiment. |
-| BELEBELE, 2,100 across English/German/Chinese | User selected Qwen2 with five full languages (en/de/zh/ar/es), 4,500 rows total. |
+| BELEBELE, 2,100 across English/German/Chinese | User selected en/de/zh, 900 each, on all four generation models. |
 | TheoremQA | User selected all 800 rows, including 53 image questions; image presence is marked and only the text is passed to these models. |
 | JailbreakBench | Supported, but exact goal/artifact mix is unspecified. Response safety labels require the chosen Guard model; prompt harmful/benign labels are not response labels. |
 | HarmBench | No built-in adapter. Supply the paper's exact rendered rows using `--task prepared --prepared-path ...`; there is no automatic substitute benchmark. |
