@@ -15,6 +15,10 @@ available in [lambda_qwen2_check.json](lambda_qwen2_check.json).
 - Results and logs: `/lambda/nfs/dami/openact/runs` and `logs`.
 - Code, previous results, and prepared data were copied from the home directories
   and verified before using the persistent checkout. Home copies remain available.
+- Both checkouts track `git@github.com:xiangli-damien/openact.git`. Code updates
+  go through local commit/push followed by `git pull --ff-only` on Lambda. Open
+  `~/dami/openact` for current work; `~/openact` is the older environment checkout.
+  See [git_sync.md](git_sync.md) for Git identity and synchronization details.
 - The active `.venv` links to `/home/ubuntu/openact/.venv`. The environment and HF
   weight cache remain on the instance disk; code and experiment outputs are persistent.
 - The volume reports a virtual capacity of 8 EiB; this is **not a verified quota**.
@@ -66,8 +70,7 @@ research configuration is a separate demo setting.
 
 ```bash
 cd ~/dami/openact
-git fetch origin
-git merge --ff-only origin/main
+git pull --ff-only origin main
 
 # Three deterministic samples per cell; full 2,048-token budget.
 .venv/bin/python scripts/run_collection_matrix.py --output runs/matrix_smoke_new
