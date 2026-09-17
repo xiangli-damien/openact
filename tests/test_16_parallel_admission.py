@@ -131,6 +131,7 @@ def test_large_gate_yields_on_pressure_then_reloads(tmp_path, monkeypatch):
     monkeypatch.setattr(gate, 'evidence', lambda _: {**assessment(*example()), 'mmlu_peak_process_mib': 16000})
     memory = iter([(35000, 40960), (16000, 40960)])
     monkeypatch.setattr(adapter, 'gpu_memory', lambda: next(memory))
+    monkeypatch.setattr(adapter, 'own_gpu_memory', lambda: 300)
     monkeypatch.setattr(adapter.time, 'sleep', lambda _: None)
     runner = SimpleNamespace(_loaded=True)
     calls = []
@@ -206,3 +207,22 @@ def test_intentional_pause_resets_transfer_stall_clock(tmp_path, monkeypatch):
     job, issues, _ = monitor.sample_job(root, logs, cache, state, 930)
     assert job['transfer_idle_seconds'] == 30
     assert not issues
+
+
+def test_gate_does_not_count_existing_cuda_context_twice(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from scripts import run_parallel_mmlu_collection as adapter
+    root = tmp_path / 'math'
+    root.mkdir()
+    (root/'job_status.json').write_text(json.dumps({'status': 'running', 'current_model': 'qwen2'}))
+    gate = adapter.ParallelGate(root, {'comparisons': {}}, 'llama3', lambda *a: None)
+    gate.output = tmp_path
+    monkeypatch.setattr(gate, 'evidence', lambda _: {**assessment(*example()), 'mmlu_peak_process_mib': 16232})
+    # 16,356 MiB MATH + 300 MiB existing MMLU CUDA context.
+    monkeypatch.setattr(adapter, 'gpu_memory', lambda: (16656, 40960))
+    monkeypatch.setattr(adapter, 'own_gpu_memory', lambda: 300)
+    monkeypatch.setattr(adapter.time, 'sleep', lambda _: pytest.fail('Admitted pairing incorrectly blocked'))
+    calls = []
+    runner = SimpleNamespace(_loaded=False, load=lambda: calls.append('load'))
+    gate.wait(runner)
+    assert calls == ['load']

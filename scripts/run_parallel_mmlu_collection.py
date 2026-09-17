@@ -57,6 +57,16 @@ def gpu_memory():
     return tuple(map(int, out.splitlines()[0].split(',')))
 
 
+def own_gpu_memory():
+    out = subprocess.check_output(['nvidia-smi', '--query-compute-apps=pid,used_memory',
+                                   '--format=csv,noheader,nounits'], text=True, timeout=10)
+    for line in out.splitlines():
+        pid, memory = map(int, line.split(','))
+        if pid == os.getpid():
+            return memory
+    return 0
+
+
 class ParallelGate:
     policy_path = None
     output = None
@@ -101,7 +111,10 @@ class ParallelGate:
                     used, total = gpu_memory()
                     # A loaded worker yields before the next request if reserve is lost.
                     # Before loading, account for its measured peak process allocation.
-                    need = 0 if runner._loaded else ((evidence or {}).get('mmlu_peak_process_mib', 4096))
+                    # The measured process peak includes its CUDA context. That
+                    # context may already be counted in total device usage.
+                    need = (0 if runner._loaded else max(0,
+                            (evidence or {}).get('mmlu_peak_process_mib', 4096) - own_gpu_memory()))
                     if total - used - need < 8192:
                         reason, permitted = 'waiting_for_gpu_memory', False
             except (OSError, ValueError, KeyError, subprocess.SubprocessError):
