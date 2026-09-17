@@ -199,7 +199,8 @@ def sample_job(root, logs, cache, state, now):
         marker.append(proc.get('wchar', 0))
     lease = maintenance(root, now)
     idle = advance(state, marker, now, waiting=stage.startswith('waiting_') or complete or bool(lease))
-    transfer_idle = advance(state.setdefault('transfer', {}), total, now, waiting=not pending)
+    transfer_idle = advance(state.setdefault('transfer', {}), total, now,
+                            waiting=not pending or bool(lease))
     issues = {}
     if not complete:
         if not proc['alive']:

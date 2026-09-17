@@ -180,3 +180,29 @@ def test_supervisor_holds_cooperative_pause_until_shadow_finishes(tmp_path, monk
             assert json.loads(lease.read_text())['controller_pid'] == os.getpid()
             raise RuntimeError('shadow failed')
     assert not lease.exists()
+
+
+def test_intentional_pause_resets_transfer_stall_clock(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from scripts import monitor_collections as monitor
+    root, local, logs = tmp_path/'math', tmp_path/'local', tmp_path/'logs'
+    root.mkdir()
+    logs.mkdir()
+    pending = local/'qwen2/shard_00100_00200'
+    pending.mkdir(parents=True)
+    (pending/'_SHARD.json').write_text('{}')
+    (root/'job_status.json').write_text(json.dumps({'fingerprint': 'f', 'pid': 1,
+        'local_root': str(local), 'status': 'running', 'errors': [], 'expected_total': 15000}))
+    (logs/'math.log').write_text('Collecting: 1/100 OK=1, Err=0')
+    monkeypatch.setattr(monitor, 'process', lambda *a: {'alive': True, 'state': 'T', 'wchar': 0})
+    monkeypatch.setattr(monitor, 'maintenance', lambda *a: {'reason': 'controlled benchmark'})
+    cache = SimpleNamespace(scan=lambda *a: ({}, set(), []))
+    state = {'transfer': {'marker': 0, 'last_progress': 0}}
+    job, issues, _ = monitor.sample_job(root, logs, cache, state, 900)
+    assert job['transfer_idle_seconds'] == 0
+    assert 'no_published_transfer_10min' not in issues
+    monkeypatch.setattr(monitor, 'maintenance', lambda *a: None)
+    monkeypatch.setattr(monitor, 'process', lambda *a: {'alive': True, 'state': 'R', 'wchar': 0})
+    job, issues, _ = monitor.sample_job(root, logs, cache, state, 930)
+    assert job['transfer_idle_seconds'] == 30
+    assert not issues
