@@ -31,6 +31,21 @@ def read_json(path):
     return json.loads(Path(path).read_text())
 
 
+def maintenance(root, now):
+    """Honor only a bounded lease whose controller is still alive."""
+    try:
+        lease = read_json(root / 'maintenance_lease.json')
+        if lease['expires_at'] <= now or lease['expires_at'] - now > 1800:
+            return None
+        pid = int(lease['controller_pid'])
+        info = (Path('/proc') / str(pid) / 'status').read_text()
+        if re.search(r'^State:\s+[ZX]', info, re.M):
+            return None
+        return lease
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
 def save_json(path, value):
     tmp = path.with_suffix('.tmp')
     with tmp.open('w') as handle:
@@ -182,13 +197,14 @@ def sample_job(root, logs, cache, state, now):
     # During transfer, actual process writes count as progress; status can lag copies.
     if pending:
         marker.append(proc.get('wchar', 0))
-    idle = advance(state, marker, now, waiting=stage.startswith('waiting_') or complete)
+    lease = maintenance(root, now)
+    idle = advance(state, marker, now, waiting=stage.startswith('waiting_') or complete or bool(lease))
     transfer_idle = advance(state.setdefault('transfer', {}), total, now, waiting=not pending)
     issues = {}
     if not complete:
         if not proc['alive']:
             issues['process_missing'] = 'critical'
-        elif proc['state'] in ('T', 't'):
+        elif proc['state'] in ('T', 't') and not lease:
             issues['process_stopped'] = 'warning'
         if status['status'] == 'failed' or status['errors']:
             issues['job_failed'] = 'critical'
@@ -196,7 +212,7 @@ def sample_job(root, logs, cache, state, now):
             issues['no_progress_10min'] = 'warning'
         if stage == 'waiting_for_disk':
             issues['waiting_for_disk'] = 'warning'
-        if pending and transfer_idle >= 600:
+        if pending and transfer_idle >= 600 and not lease:
             issues['no_published_transfer_10min'] = 'warning'
     if problems:
         issues['published_metadata'] = 'critical'
@@ -208,7 +224,8 @@ def sample_job(root, logs, cache, state, now):
               'published': published, 'process': proc, 'log': log,
               'pending_transfer_shards': pending, 'idle_seconds': idle,
               'transfer_idle_seconds': transfer_idle,
-              'metadata_problems': problems, 'job_errors': status['errors']}
+              'metadata_problems': problems, 'job_errors': status['errors'],
+              'maintenance': lease}
     return result, issues, errors
 
 
