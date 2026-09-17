@@ -238,6 +238,25 @@ def resources(disk):
             'disk_free_bytes': shutil.disk_usage(disk).free}
 
 
+def parallel_scheduler(root, mmlu_complete):
+    paths = sorted((root / 'runs').glob('parallel_admission_*/supervisor.json'))
+    if not paths:
+        return None, {}
+    path = paths[-1]
+    status = read_json(path)
+    supervisor = process(status['pid'], path.parent)
+    handoff = process(status['handoff_pid'], root / 'runs/mmlu_full_20260916')
+    issues = {}
+    if status['status'] == 'running' and not supervisor['alive']:
+        issues['parallel/supervisor_missing'] = 'warning'
+    if not mmlu_complete and not handoff['alive']:
+        issues['parallel/handoff_missing'] = 'critical'
+    if any(v['returncode'] != 0 for v in status.get('attempts', {}).values()):
+        issues['parallel/benchmark_failed'] = 'warning'
+    return {'path': str(path), 'status': status['status'], 'supervisor': supervisor,
+            'handoff': handoff, 'attempts': status.get('attempts', {})}, issues
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path('/lambda/nfs/dami/openact'))
@@ -284,6 +303,13 @@ def main():
             except Exception as exc:
                 issues[dataset + '/probe_failed'] = 'warning'
                 snapshot['jobs'][dataset] = {'probe_error': str(exc), 'complete': False}
+        try:
+            snapshot['parallel_scheduler'], alerts = parallel_scheduler(
+                args.root, snapshot['jobs'].get('mmlu', {}).get('complete', False))
+            issues.update(alerts)
+        except Exception as exc:
+            issues['parallel/probe_failed'] = 'warning'
+            snapshot['parallel_scheduler_error'] = str(exc)
         events.extend(transitions(state.get('active_alerts', {}), issues))
         state['active_alerts'] = snapshot['active_alerts'] = issues
         done = all(j['complete'] for j in snapshot['jobs'].values())

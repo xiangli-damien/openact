@@ -143,3 +143,20 @@ def test_large_gate_yields_on_pressure_then_reloads(tmp_path, monkeypatch):
     runner.load, runner.unload = load, unload
     gate.wait(runner)
     assert calls == ['unload', 'load']
+
+
+def test_monitor_detects_scheduler_failure_without_interrupting_collectors(tmp_path, monkeypatch):
+    from scripts import monitor_collections as monitor
+    folder = tmp_path / 'runs/parallel_admission_test'
+    folder.mkdir(parents=True)
+    record = {'pid': 1, 'handoff_pid': 2, 'status': 'running', 'attempts': {}}
+    path = folder / 'supervisor.json'
+    path.write_text(json.dumps(record))
+    monkeypatch.setattr(monitor, 'process', lambda pid, path: {'pid': pid, 'alive': pid == 2})
+    _, alerts = monitor.parallel_scheduler(tmp_path, False)
+    assert alerts == {'parallel/supervisor_missing': 'warning'}
+    path.write_text(json.dumps({**record, 'status': 'math_complete'}))
+    assert monitor.parallel_scheduler(tmp_path, False)[1] == {}
+    monkeypatch.setattr(monitor, 'process', lambda pid, path: {'pid': pid, 'alive': False})
+    assert monitor.parallel_scheduler(tmp_path, False)[1] == {'parallel/handoff_missing': 'critical'}
+    assert monitor.parallel_scheduler(tmp_path, True)[1] == {}
