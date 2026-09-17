@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -51,7 +52,7 @@ def guard(args):
     for pid in read(registry) if registry.exists() else []:
         try:
             cmd = Path(f'/proc/{pid}/cmdline').read_bytes()
-            if b'benchmark_live_parallel' in cmd and str(args.output).encode() in cmd:
+            if b'benchmark_live_parallel' in cmd and args.output.name.encode() in cmd:
                 os.kill(pid, signal.SIGTERM)
         except (OSError, ProcessLookupError):
             pass
@@ -125,6 +126,7 @@ def main():
     parser.add_argument('--model', choices=['qwen2', 'llama3', 'llama32'])
     parser.add_argument('--samples', type=int, default=6)
     parser.add_argument('--policy', type=Path)
+    parser.add_argument('--work-root', type=Path, default=Path('/home/ubuntu/openact-staging/parallel_benchmarks'))
     parser.add_argument('--worker', action='store_true')
     parser.add_argument('--dataset', choices=['math', 'mmlu'])
     parser.add_argument('--start', type=int)
@@ -162,6 +164,10 @@ def main():
     if not (local / 'tensors.zarr').exists() or (local / '_SHARD.json').exists():
         raise RuntimeError('MATH is not currently inside a collectable shard')
     args.output.mkdir(parents=True, exist_ok=False)
+    work = args.work_root / args.output.name
+    work.mkdir(parents=True, exist_ok=False)
+    if shutil.disk_usage(work).free < 200 * 1024 ** 3:
+        raise RuntimeError('Benchmark requires 200 GiB free local staging space')
     processes, handles, resources = [], [], []
     deadline = time.monotonic() + 1380
     report = {'status': 'running', 'math_model': math['current_model'], 'mmlu_model': args.model,
@@ -171,6 +177,7 @@ def main():
               'samples_per_workload': args.samples, 'started_at': time.time(),
               'method': 'Identical token workloads; live MATH, shadow MMLU; collection time excludes evaluation',
               'timing_resolution_seconds': .05, 'cases': {}}
+    report['local_work_root'] = str(work)
     write_json(args.output / 'benchmark.json', report)
     watchdog = subprocess.Popen([sys.executable, '-m', 'scripts.benchmark_live_parallel', '--guard',
                   '--controller', str(os.getpid()), '--math-pid', str(args.math_pid),
@@ -194,7 +201,8 @@ def main():
         if not alive(args.math_pid) or not alive(args.mmlu_pid):
             raise RuntimeError('Production process disappeared during benchmark')
     def launch(name, model, dataset):
-        path = args.output / name
+        # Use the same local disk as production, never NFS for baseline timings.
+        path = work / name
         barrier = args.output / f'{name}.start'
         handle = (args.output / f'{name}.log').open('w')
         handles.append(handle)

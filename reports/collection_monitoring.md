@@ -28,7 +28,7 @@ expected scheduling state. `waiting_for_disk` gets its own warning. System memor
 checks use MemAvailable, not MemFree, so reclaimable file cache is not misreported.
 
 The Codex thread heartbeat **math-mmlu**, named “监控 MATH/MMLU 采集与内存”,
-checks every 5 minutes and reviews new events, diagnoses anomalies, and reports
+checks every 30 minutes and reviews new events, diagnoses anomalies, and reports
 new failures, recovery, model completion, or required user action. Normal and
 unchanged states stay quiet. The heartbeat needs the local computer and Codex
 desktop app running; remote collection and telemetry continue independently.
