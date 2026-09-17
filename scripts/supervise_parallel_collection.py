@@ -4,6 +4,8 @@ No changes to model/data/capture settings. Unqualified combinations stay queued.
 Run in tmux; exclusive lock prevents two admission controllers on one job.
 """
 import argparse
+from contextlib import contextmanager
+import os
 import fcntl
 import json
 from pathlib import Path
@@ -26,6 +28,33 @@ def alive_handoff(pid, output):
                 and '\nState:\tZ' not in (root / 'status').read_text())
     except OSError:
         return False
+
+
+@contextmanager
+def admission_pause(root):
+    """The upgraded collector unloads between requests before a shadow is loaded."""
+    lease = root / 'scheduling_pause.json'
+    owned = False
+    try:
+        status = read(root / 'job_status.json')
+        cmd = Path(f'/proc/{status["pid"]}/cmdline').read_bytes()
+        if b'run_parallel_mmlu_collection' in cmd:
+            write_json(lease, {'controller_pid': os.getpid(), 'expires_at': time.time()+1500,
+                               'reason': 'Release the production MMLU model for a bounded pairing benchmark'})
+            owned = True
+            deadline = time.monotonic() + 300
+            while True:
+                current = read(root / 'job_status.json')
+                if (current.get('stage') == 'waiting_for_benchmark'
+                        and process_memory().get(current['pid'], 0) <= 4608):
+                    break
+                if time.monotonic() > deadline:
+                    raise TimeoutError('MMLU did not reach an unloaded request boundary')
+                time.sleep(1)
+        yield
+    finally:
+        if owned:
+            lease.unlink(missing_ok=True)
 
 
 def main():
@@ -67,6 +96,9 @@ def main():
         if math['status'] != 'running' or mmlu['status'] not in ('running', 'complete'):
             time.sleep(15)
             continue
+        if mmlu.get('stage') == 'waiting_for_resume_verification':
+            time.sleep(15)
+            continue
         alias = math['current_model']
         if alias not in ('qwen2', 'llama3'):
             time.sleep(15)
@@ -75,31 +107,32 @@ def main():
             key = f'{alias}:{candidate}'
             if key in read(policy)['pairs'] or key in state['attempts']:
                 continue
-            try:
-                math, mmlu = read(args.math_root / 'job_status.json'), read(args.mmlu_root / 'job_status.json')
-                if math['current_model'] != alias or mmlu['status'] != 'running':
+            with admission_pause(args.mmlu_root):
+                try:
+                    math, mmlu = read(args.math_root / 'job_status.json'), read(args.mmlu_root / 'job_status.json')
+                    if math['current_model'] != alias or mmlu['status'] != 'running':
+                        break
+                    if process_memory().get(mmlu['pid'], 0) > 4608:
+                        break
+                    shard = math['current_shard']
+                    select_window(progress(ROOT / 'logs' / f'{args.math_root.name}.log'),
+                                  shard['stop']-shard['start'], 6)
+                except (OSError, ValueError, KeyError):
                     break
-                if process_memory().get(mmlu['pid'], 0) > 4608:
-                    break
-                shard = math['current_shard']
-                select_window(progress(ROOT / 'logs' / f'{args.math_root.name}.log'),
-                              shard['stop']-shard['start'], 6)
-            except (OSError, ValueError, KeyError):
-                break
-            output = args.output / f'{alias}_{candidate}_{int(time.time())}'
-            command = [sys.executable, '-u', '-m', 'scripts.benchmark_live_parallel',
-                       '--math-root', str(args.math_root), '--mmlu-root', str(args.mmlu_root),
-                       '--output', str(output), '--model', candidate, '--samples', '6',
-                       '--policy', str(policy)]
-            print(f'Measuring {key}: {output}', flush=True)
-            with (args.output / f'{output.name}.log').open('w') as log:
-                result = subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
-            record = read(output / 'benchmark.json') if (output / 'benchmark.json').exists() else {}
-            state['attempts'][key] = {'returncode': result.returncode, 'report': str(output / 'benchmark.json'),
-                                      'eligible': record.get('eligible', False),
-                                      'error': record.get('error'), 'at': time.time()}
-            write_json(status_file, state)
-            print(json.dumps({key: state['attempts'][key]}), flush=True)
+                output = args.output / f'{alias}_{candidate}_{int(time.time())}'
+                command = [sys.executable, '-u', '-m', 'scripts.benchmark_live_parallel',
+                           '--math-root', str(args.math_root), '--mmlu-root', str(args.mmlu_root),
+                           '--output', str(output), '--model', candidate, '--samples', '6',
+                           '--policy', str(policy)]
+                print(f'Measuring {key}: {output}', flush=True)
+                with (args.output / f'{output.name}.log').open('w') as log:
+                    result = subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+                record = read(output / 'benchmark.json') if (output / 'benchmark.json').exists() else {}
+                state['attempts'][key] = {'returncode': result.returncode, 'report': str(output / 'benchmark.json'),
+                                          'eligible': record.get('eligible', False),
+                                          'error': record.get('error'), 'at': time.time()}
+                write_json(status_file, state)
+                print(json.dumps({key: state['attempts'][key]}), flush=True)
         time.sleep(15)
 
 

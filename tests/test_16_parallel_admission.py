@@ -160,3 +160,23 @@ def test_monitor_detects_scheduler_failure_without_interrupting_collectors(tmp_p
     monkeypatch.setattr(monitor, 'process', lambda pid, path: {'pid': pid, 'alive': False})
     assert monitor.parallel_scheduler(tmp_path, False)[1] == {'parallel/handoff_missing': 'critical'}
     assert monitor.parallel_scheduler(tmp_path, True)[1] == {}
+
+
+def test_supervisor_holds_cooperative_pause_until_shadow_finishes(tmp_path, monkeypatch):
+    from scripts import supervise_parallel_collection as supervisor
+    status = {'pid': 12345, 'stage': 'waiting_for_benchmark'}
+    (tmp_path / 'job_status.json').write_text(json.dumps(status))
+    original = Path.read_bytes
+    def read_bytes(path):
+        if str(path) == '/proc/12345/cmdline':
+            return b'python -m scripts.run_parallel_mmlu_collection'
+        return original(path)
+    monkeypatch.setattr(Path, 'read_bytes', read_bytes)
+    monkeypatch.setattr(supervisor, 'process_memory', lambda: {12345: 300})
+    lease = tmp_path / 'scheduling_pause.json'
+    with pytest.raises(RuntimeError, match='shadow failed'):
+        with supervisor.admission_pause(tmp_path):
+            assert lease.exists()
+            assert json.loads(lease.read_text())['controller_pid'] == os.getpid()
+            raise RuntimeError('shadow failed')
+    assert not lease.exists()
