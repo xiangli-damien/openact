@@ -4,6 +4,7 @@ No reference answers, attack search, or synthetic class labels are used. Outputs
 are ordinary OpenAct Runs. The balanced subset is NOT a safety-rate estimate.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 import fcntl
 import gc
@@ -248,6 +249,7 @@ def main():
     def make_runner():
         return ModelRunner(c['model'], revision=c['model_revision'], dtype='bfloat16', device_map='cuda:0', attn_implementation='sdpa')
     counts = {'safe':0,'unsafe':0}; all_judged=[]; published=[]; runner=None; guard=None
+    transfer_pool = ThreadPoolExecutor(max_workers=1)
     ranges=[]; start=0
     while start<len(items):
         stop=min(len(items),start+(c['pilot_size'] if start==0 else c['block_size']))
@@ -296,11 +298,22 @@ def main():
                         atomic_json(judge_path,rows); save('guard', judged_in_block=len(rows))
                     guard.teardown(); guard=None
                 chosen,after=quota_selection(rows,counts,c['target_per_class'])
+                observed = all_judged + rows
+                status.update(screened=len(observed), safe=sum(r['judge']['is_safe'] is True for r in observed),
+                              unsafe=sum(r['judge']['is_safe'] is False for r in observed),
+                              unknown=sum(r['judge']['is_safe'] is None for r in observed))
                 atomic_json(block/'selection.json',dict(sample_ids=[r['sample_id'] for r in chosen],selected_before=counts,selected_after=after))
                 shard_records=[]
+                pending=[]
+                def accept_transfer(future):
+                    shard_records.append(future.result())
+                    save('capture', published_shards=len(published)+len(shard_records),
+                         selected={key:counts[key]+sum(x[key] for x in shard_records) for key in counts})
                 if chosen:
                     runner=make_runner(); runner.load(); save('capture',selected_planned=after)
                     for s in range(0,len(chosen),c['shard_size']):
+                        while pending and (pending[0].done() or len(pending)>=2):
+                            save('transfer'); accept_transfer(pending.pop(0))
                         selected=chosen[s:s+c['shard_size']]
                         name=f'block_{start:05d}/shard_{s:04d}_{s+len(selected):04d}'
                         destination=out/'llama2'/name; local=local_root/name
@@ -311,6 +324,7 @@ def main():
                             if record['sample_ids']!=ids or record['fingerprint']!=fingerprint:
                                 raise ValueError('Published shard identity mismatch')
                             record.update(run_path=str(destination),stored_bytes=receipt['stored_bytes'])
+                            shard_records.append(record)
                         else:
                             if local.exists(): local.rename(local.with_name(local.name+'.interrupted-'+uuid.uuid4().hex))
                             worst=sum(len(r['token_ids'])+3 for r in selected)*35*4096*4*1.5
@@ -338,10 +352,12 @@ def main():
                                 unsafe=sum(r['judge']['is_safe'] is False for r in selected),
                                 tokens=collected['n_tokens_total'],verification=validation,passed=True,created_at=now())
                             atomic_json(local/'_SHARD.json',record)
-                            save('transfer'); record=publish_with_retries(local,destination)
-                        shard_records.append(record)
+                            pending.append(transfer_pool.submit(publish_with_retries,local,destination))
                         save('capture',published_shards=len(published)+len(shard_records))
                     runner.unload(); runner=None
+                    while pending:
+                        save('transfer'); accept_transfer(pending.pop(0))
+                    shard_records.sort(key=lambda x:x['run_path'])
                 counts=after; published.extend(shard_records); all_judged.extend(rows)
                 atomic_json(block/'_COMPLETE.json',dict(completed_at=now(),selected_after=counts,published=shard_records))
             status.update(screened=len(all_judged),safe=sum(r['judge']['is_safe'] is True for r in all_judged),
@@ -373,6 +389,7 @@ def main():
     finally:
         if runner is not None: runner.unload()
         if guard is not None: guard.teardown()
+        transfer_pool.shutdown(wait=True)
         lock.close()
 
 
