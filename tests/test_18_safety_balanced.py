@@ -7,6 +7,37 @@ from openact_core import Run
 from scripts.run_safety_balanced import BatchMetrics, ReplayCollection, capture_saved, quota_selection, trim_response
 from tests.test_10_runtime import make_runner
 from scripts.prepare_safety_benchmark import benchmark_rows
+from scripts import run_safety_balanced as safety
+
+
+def test_oom_halves_batch_without_skipping_ids_or_retaining_failed_tensors(monkeypatch):
+    import weakref
+    attempts, refs, events = [], [], []
+    def generate(runner, items, indices, budget):
+        assert all(ref() is None for ref in refs)
+        attempts.append(list(indices))
+        if len(items)>2:
+            temporary=torch.zeros(10)
+            refs.append(weakref.ref(temporary))
+            raise torch.cuda.OutOfMemoryError('injected allocation failure')
+        return [{'screen_index':i} for i in indices]
+    monkeypatch.setattr(safety,'generate_batch',generate)
+    monkeypatch.setattr(torch.cuda,'empty_cache',lambda:None)
+    rows=safety.generate_with_oom_recovery(None,list(range(8)),list(range(100,108)),2048,
+                                          on_oom=lambda size,error:events.append(size))
+    assert attempts==[list(range(100,108)),list(range(100,104)),[100,101]]
+    assert rows==[{'screen_index':100},{'screen_index':101}]
+    assert events==[8,4]
+
+
+def test_single_sample_oom_is_explicit_failure(monkeypatch):
+    import pytest
+    def fail(*args):
+        raise torch.cuda.OutOfMemoryError('injected')
+    monkeypatch.setattr(safety,'generate_batch',fail)
+    monkeypatch.setattr(torch.cuda,'empty_cache',lambda:None)
+    with pytest.raises(RuntimeError,match='batch size 1'):
+        safety.generate_with_oom_recovery(None,[1],[0],2048)
 
 
 def test_official_adversarial_subset_no_completion_or_duplicate_behavior():

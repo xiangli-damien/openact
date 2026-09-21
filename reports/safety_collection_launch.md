@@ -84,3 +84,20 @@ Prepare with `scripts/prepare_safety_benchmark.py --output
 /lambda/nfs/dami/openact-data/prepared/wildjailbreak_adversarial_20260921` and use
 `--config configs/safety_balanced_adversarial.toml` for the launcher. The new
 output is `/lambda/nfs/dami/openact/runs/safety_balanced_adv_20260921`.
+
+## OOM recovery (2026-09-21)
+
+The 320-response checkpoint has 310 safe / 10 unsafe, all published. Subsequent
+batch-8 generation logged CUDA allocation OOMs and recovered via single-sample
+fallback. That fallback ran inside the exception handler, which could retain
+the failed batch's KV cache through its traceback. Retries now happen after
+leaving that handler, release unused cached GPU blocks, halve the batch size,
+and keep the reduced size for subsequent batches. A single-sample OOM remains
+an explicit failure. Existing responses, labels and activation shards are kept.
+
+The operational `--max-batch-size 4` cap reduces memory demand while preserving
+the frozen candidate order, generator/judge, bf16, greedy decoding and token
+budget. Actual per-batch sizes are saved; as already documented, batch-size
+changes need not be bitwise equivalent in bf16. Status now records allocated
+and reserved GPU memory separately and logs each recovery. Resume uses the
+same configuration plus `--max-batch-size 4`; append to the existing log.

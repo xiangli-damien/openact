@@ -185,6 +185,33 @@ def generate_batch(runner, items, indices, budget):
     return rows
 
 
+def _generation_attempt(runner, items, indices, budget):
+    # Leave the exception handler before retrying: its traceback can otherwise
+    # retain the failed batch's KV cache while the fallback allocates another.
+    try:
+        return generate_batch(runner, items, indices, budget), None
+    except torch.cuda.OutOfMemoryError as exc:
+        return None, str(exc)
+
+
+def generate_with_oom_recovery(runner, items, indices, budget, on_oom=None):
+    """Return a successful prefix, halving batch size after OOM; omit no IDs."""
+    size = len(items)
+    if not size or len(indices) != size:
+        raise ValueError('Nonempty aligned items and indices required')
+    while True:
+        rows, error = _generation_attempt(runner, items[:size], indices[:size], budget)
+        if rows is not None:
+            return rows
+        gc.collect()
+        torch.cuda.empty_cache()
+        if on_oom:
+            on_oom(size, error)
+        if size == 1:
+            raise RuntimeError(f'CUDA OOM at batch size 1 after cache cleanup: {error}')
+        size = max(1, size // 2)
+
+
 def label_result(rows):
     records = []
     for i, row in enumerate(rows):
@@ -200,8 +227,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default='configs/safety_balanced.toml')
     parser.add_argument('--max-blocks', type=int, help='Stop after this many blocks, for pilot review; rerun without to resume')
+    parser.add_argument('--max-batch-size', type=int, help='Operational batch cap, never greater than the frozen plan; does not change stored responses')
     args = parser.parse_args()
     config_path = Path(args.config).resolve(); c = tomllib.loads(config_path.read_text())
+    runtime_batch_size = c['batch_size'] if args.max_batch_size is None else args.max_batch_size
+    if not 1 <= runtime_batch_size <= c['batch_size']:
+        parser.error('--max-batch-size must be between 1 and the planned batch size')
     base = load_run_config(str(config_path.parent / c['base_config']))
     out, local_root, prepared = map(Path, (c['output'], c['local_root'], c['prepared_path']))
     out.mkdir(parents=True, exist_ok=True); local_root.mkdir(parents=True, exist_ok=True)
@@ -240,10 +271,14 @@ def main():
     status = dict(started_at=now(), pid=os.getpid(), status='running', selected={'safe':0,'unsafe':0},
                   target_per_class=c['target_per_class'], screened=0, safe=0, unsafe=0, unknown=0,
                   output=str(out), fingerprint=fingerprint, errors=[])
+    status['runtime_batch_size'] = runtime_batch_size
+    status['source_commit'] = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
     def save(stage, **extra):
         status.update(stage=stage, updated_at=now(), **extra)
         status['safety_rate'] = status['safe'] / max(1, status['safe'] + status['unsafe']) if status['safe']+status['unsafe'] else None
         status['gpu_peak_allocated_bytes'] = torch.cuda.max_memory_allocated()
+        status['gpu_allocated_bytes'] = torch.cuda.memory_allocated()
+        status['gpu_reserved_bytes'] = torch.cuda.memory_reserved()
         status['local_disk_free_bytes'] = shutil.disk_usage(local_root).free
         atomic_json(out / 'job_status.json', status)
     def make_runner():
@@ -272,17 +307,20 @@ def main():
                     runner=make_runner(); runner.load(); save('generation')
                     offset=len(generated)
                     while offset<stop-start:
-                        batch=items[start+offset:min(stop,start+offset+c['batch_size'])]
-                        try:
-                            rows=generate_batch(runner,batch,list(range(start+offset,start+offset+len(batch))),c['max_new_tokens'])
-                        except torch.cuda.OutOfMemoryError:
-                            gc.collect(); torch.cuda.empty_cache()
-                            if len(batch)==1: raise
-                            rows=[]
-                            for j,item in enumerate(batch):
-                                rows.extend(generate_batch(runner,[item],[start+offset+j],c['max_new_tokens']))
-                        generated.extend(rows); offset+=len(batch); atomic_json(gen_path,generated)
-                        save('generation', generated_in_block=offset)
+                        batch=items[start+offset:min(stop,start+offset+runtime_batch_size)]
+                        def record_oom(size,error):
+                            event=dict(at=now(),screen_index=start+offset,batch_size=size,error=error)
+                            status.setdefault('oom_recoveries',[]).append(event)
+                            print('OOM_RECOVERY '+json.dumps(event),flush=True)
+                            save('generation_recovery')
+                        rows=generate_with_oom_recovery(runner,batch,list(range(start+offset,start+offset+len(batch))),
+                                                       c['max_new_tokens'],on_oom=record_oom)
+                        runtime_batch_size=min(runtime_batch_size,len(rows)) if len(rows)<len(batch) else runtime_batch_size
+                        generated.extend(rows); offset+=len(rows); atomic_json(gen_path,generated)
+                        # Shape-varying dynamic KV caches can fragment the allocator.
+                        # Batch outputs are now CPU-only; release unused GPU blocks.
+                        gc.collect(); torch.cuda.empty_cache()
+                        save('generation', generated_in_block=offset,runtime_batch_size=runtime_batch_size)
                     runner.unload(); runner=None
                 judge_path=block/'judged.json'
                 rows=json.loads(judge_path.read_text()) if judge_path.exists() else []
