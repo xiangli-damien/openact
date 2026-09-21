@@ -68,3 +68,19 @@ selected sample's run path, local row index, class, category and screen index.
 
 Sources: [WildJailbreak](https://huggingface.co/datasets/allenai/wildjailbreak),
 [Llama Guard 3](https://huggingface.co/meta-llama/Llama-Guard-3-8B).
+
+## Pilot outcome and source adjustment
+
+The frozen 64-question vanilla pilot yielded 64 safe, 0 unsafe, 0 unknown.
+The user permits a nonidentical collection to obtain both classes. The next
+run uses **existing official `adversarial_harmful` prompts**, with one variant
+per underlying behavior and exact prompt deduplication. Both selected classes
+come from this same source. No attacks are generated/optimized, no reference
+completions are model inputs, and generator/judge/decoding stay the same.
+The vanilla pilot remains a separate reference, not part of the balanced set.
+The rate in the new run is an adversarial-benchmark rate, not a vanilla rate.
+
+Prepare with `scripts/prepare_safety_benchmark.py --output
+/lambda/nfs/dami/openact-data/prepared/wildjailbreak_adversarial_20260921` and use
+`--config configs/safety_balanced_adversarial.toml` for the launcher. The new
+output is `/lambda/nfs/dami/openact/runs/safety_balanced_adv_20260921`.

@@ -6,6 +6,21 @@ from openact_collect.schema import CaptureSpec, GenerationSpec
 from openact_core import Run
 from scripts.run_safety_balanced import BatchMetrics, ReplayCollection, capture_saved, quota_selection, trim_response
 from tests.test_10_runtime import make_runner
+from scripts.prepare_safety_benchmark import benchmark_rows
+
+
+def test_official_adversarial_subset_no_completion_or_duplicate_behavior():
+    source = [
+        dict(data_type='vanilla_harmful', vanilla='goal', adversarial='', completion='NO LEAK'),
+        dict(data_type='adversarial_harmful', vanilla='goal', adversarial='variant one', completion='NO LEAK'),
+        dict(data_type='adversarial_harmful', vanilla='goal', adversarial='variant two', completion='NO LEAK'),
+        dict(data_type='adversarial_benign', vanilla='benign', adversarial='benign variant', completion='NO LEAK'),
+    ]
+    rows = benchmark_rows(source)
+    assert len(rows) == 1
+    assert rows[0]['prompt_text'] in ['variant one\n\nPlease reason step by step.', 'variant two\n\nPlease reason step by step.']
+    assert 'NO LEAK' not in str(rows)
+    assert rows[0]['category'] == 'adversarial_harmful'
 
 
 def test_metrics_stop_at_each_samples_first_eos():
