@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import torch
 from openact_collect import GenericTask
 from openact_collect.extractors.hidden_state_extractor import HiddenStateExtractor
@@ -8,6 +9,62 @@ from scripts.run_safety_balanced import BatchMetrics, ReplayCollection, capture_
 from tests.test_10_runtime import make_runner
 from scripts.prepare_safety_benchmark import benchmark_rows
 from scripts import run_safety_balanced as safety
+
+
+@pytest.mark.parametrize('family', ['llama', 'qwen2'])
+def test_prompt_only_matches_causal_full_replay_without_forwarding_response(family):
+    runner = make_runner(family)
+    full = CaptureSpec(hidden_states_dtype='float32')
+    capture = safety.capture_spec_for_mode(full.to_dict(), 'prompt-last')
+    prompt = [2, 3, 5]
+    replay = capture_saved(runner, prompt, [4, 5, 6, 7], full, 'length', 4)
+    expected = HiddenStateExtractor(full, runner).extract(replay)
+    calls = []
+    hook = runner.model.register_forward_pre_hook(
+        lambda m, args, kwargs: calls.append(kwargs['input_ids'].shape[1]), with_kwargs=True)
+    runner.model.generate = lambda **kwargs: (_ for _ in ()).throw(AssertionError('Must not generate'))
+    actual = safety.capture_prompt_last(runner, prompt, capture)
+    hook.remove()
+    assert calls == [len(prompt)]
+    assert actual.n_tokens == 0 and actual.per_token_states is None and actual.mean_states is None
+    assert actual.final_norm_pre is None and actual.final_norm_post is None
+    for key in ['prompt_last_states', 'final_norm_pre_prompt_last', 'final_norm_post_prompt_last']:
+        np.testing.assert_allclose(getattr(actual, key), getattr(expected, key), atol=1e-6)
+
+
+def test_prompt_only_run_preserves_response_tokens_labels_and_validates(tmp_path):
+    runner = make_runner()
+    task = GenericTask([{'prompt': 'hello world'}])
+    item = next(task.iter_items())
+    prompt = task.render_prompt(item)
+    ids = runner.apply_chat_template([{'role': 'user', 'content': prompt}])[0].tolist()
+    full = CaptureSpec(hidden_states_dtype='float32')
+    capture = safety.capture_spec_for_mode(full.to_dict(), 'prompt-last')
+    result = runner.generate(torch.tensor([ids]), GenerationSpec(max_new_tokens=4), capture_spec=full)
+    row = dict(sample_id=item.sample_id, prompt_text=prompt, prompt_token_ids=ids, token_ids=result.token_ids,
+               response_text=runner.decode(result.token_ids), finish_reason=result.finish_reason,
+               effective_max_new_tokens=4, model_input_text=prompt, screen_index=0,
+               generation_metrics={'entropy': 1., 'perplexity': 2., 'max_probability': .5},
+               judge={'is_safe': False})
+    runner.model.generate = lambda **kwargs: (_ for _ in ()).throw(AssertionError('Must not generate'))
+    safety.ReplayCollection(runner, task, tmp_path/'run', capture_spec=capture,
+        capture_mode='prompt-last', generation_spec=GenerationSpec(max_new_tokens=4),
+        responses={item.sample_id: row}).run()
+    run = Run(tmp_path/'run')
+    validation = safety.validate_prompt_shard(runner, run, [item.sample_id])
+    assert validation['prompt_only_exact_replay'] and not run.validate()
+    assert run[0].token_ids.tolist() == row['token_ids']
+    assert run[0].response_text == row['response_text']
+    assert run[0].prompt_last_hidden_states.shape == (3, 16)
+    assert run.manifest.custom['activation_forward_input'] == 'prompt_ids_only'
+    assert run._df.n_hidden_state_tokens.tolist() == [0]
+    assert safety.label_result([row])[0].is_correct is False
+    # Validation must detect corruption, not just check array presence.
+    import zarr
+    writable = zarr.open_group(str(tmp_path/'run'/'tensors.zarr'), mode='a')
+    writable['hidden_states/prompt_last'][0, 0, 0] += 1
+    with pytest.raises(AssertionError):
+        safety.validate_prompt_shard(runner, Run(tmp_path/'run'), [item.sample_id])
 
 
 def test_oom_halves_batch_without_skipping_ids_or_retaining_failed_tensors(monkeypatch):

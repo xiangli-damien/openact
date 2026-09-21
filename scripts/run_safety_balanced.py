@@ -30,10 +30,11 @@ from openact_collect import CollectionRunner, ModelRunner
 from openact_collect.config import load_run_config, tomllib
 from openact_collect.engine.collector import CollectResult
 from openact_collect.engine.model_manager import GenerationResult
-from openact_collect.extractors.hidden_state_data import GenerationMetrics
+from openact_collect.extractors.hidden_state_data import GenerationMetrics, HiddenStateData
 from openact_collect.schema import CaptureSpec, GenerationSpec
 from openact_collect.tasks.prepared import PreparedParquetTask
 from openact_collect.tracing import ActivationRecorder
+from openact_collect.tracing.module_resolver import find_final_norm
 from openact_core import Run
 from openact_core.schema.status import SampleStatus
 from openact_eval.evaluators.base import EvalRecord, EvalResult
@@ -116,11 +117,102 @@ def capture_saved(runner, prompt_ids, token_ids, capture, finish_reason, budget)
                             None, finish_reason, list(token_ids), list(range(1, t + 1)), traces, budget)
 
 
+def capture_spec_for_mode(base_capture, mode):
+    values = dict(base_capture)
+    if mode == 'prompt-last':
+        values.update(hidden_states=True, final_norm=True, save_prompt_last=True,
+                      save_per_token=False, save_mean_states=False, attention=False, mlp=False)
+    elif mode != 'full':
+        raise ValueError(f'Unknown capture mode: {mode}')
+    return CaptureSpec(**values)
+
+
+def capture_prompt_last(runner, prompt_ids, capture):
+    """Forward only the exact prompt; response text is used exclusively for labels."""
+    if not prompt_ids:
+        raise ValueError('Exact prompt IDs are required')
+    sequence = torch.tensor([prompt_ids], device=runner.device)
+    kwargs = {'logits_to_keep': 1} if 'logits_to_keep' in inspect.signature(runner.model.forward).parameters else {}
+    with torch.inference_mode(), ActivationRecorder(
+            runner.model, capture, decoder_n_layers=runner.decoder_n_layers,
+            token_positions=[len(prompt_ids) - 1]) as recorder:
+        measured = runner.model(input_ids=sequence, attention_mask=torch.ones_like(sequence),
+                                use_cache=False, return_dict=True, output_hidden_states=True, **kwargs)
+        if len(measured.hidden_states) != runner.probed_n_layers:
+            raise ValueError('Unexpected prompt layer count')
+        layers = capture.get_effective_layers(runner.probed_n_layers)
+        values = torch.stack([measured.hidden_states[i][0, -1] for i in layers]).float().cpu().numpy()
+        trace = recorder.trace()
+        if len(trace.final_norm_pre) != 1 or len(trace.final_norm_post) != 1:
+            raise ValueError('Expected exactly one prompt-last final norm trace')
+        return HiddenStateData(prompt_last_states=values,
+            final_norm_pre_prompt_last=trace.final_norm_pre[0].float().numpy(),
+            final_norm_post_prompt_last=trace.final_norm_post[0].float().numpy(), n_tokens=0)
+
+
+def validate_prompt_shard(runner, run, ids):
+    """Check all rows, then independently replay prompt-only states for two rows."""
+    if [s.sample_id for s in run] != ids or len(set(ids)) != len(ids):
+        raise ValueError('Prompt shard sample IDs mismatch')
+    issues = run.validate()
+    if issues or not run.is_complete or run.n_valid != len(ids):
+        raise ValueError(f'Invalid prompt shard: {issues}')
+    for group in ('hidden_states', 'final_norm/pre', 'final_norm/post'):
+        if any(f'{group}/{reduction}' in run._zarr for reduction in ('mean', 'per_token')):
+            raise ValueError('Prompt-only shard unexpectedly contains generation activations')
+    layers = CaptureSpec(**run.manifest.capture_config).get_effective_layers(runner.probed_n_layers)
+    width = runner.get_model_spec().hidden_dim
+    for sample in run:
+        h = sample.prompt_last_hidden_states
+        pre = sample.get_final_norm_states('pre', 'prompt_last')
+        post = sample.get_final_norm_states('post', 'prompt_last')
+        if h.shape != (len(layers), width) or pre.shape != (width,) or post.shape != (width,):
+            raise ValueError('Prompt activation shape mismatch')
+        if not all(np.isfinite(v).all() for v in (h, pre, post)):
+            raise ValueError('Nonfinite prompt activations')
+        if runner.probed_n_layers - 1 in layers:
+            np.testing.assert_array_equal(h[layers.index(runner.probed_n_layers - 1)], post)
+    checked = sorted(set([0, len(run) - 1]))
+    for index in checked:
+        sample = run[index]
+        ids_tensor = torch.tensor([sample.prompt_token_ids.tolist()], device=runner.device)
+        norm = {}
+        def save_norm(module, inputs, output):
+            norm['pre'] = inputs[0][0, -1].detach().float().cpu().numpy().copy()
+            norm['post'] = output[0, -1].detach().float().cpu().numpy().copy()
+        hook = find_final_norm(runner.model).register_forward_hook(save_norm)
+        try:
+            kwargs = {'logits_to_keep': 1} if 'logits_to_keep' in inspect.signature(runner.model.forward).parameters else {}
+            with torch.inference_mode():
+                reference = runner.model(input_ids=ids_tensor, attention_mask=torch.ones_like(ids_tensor),
+                    use_cache=False, output_hidden_states=True, return_dict=True, **kwargs)
+                expected = torch.stack([reference.hidden_states[i][0, -1] for i in layers]).float().cpu().numpy()
+            np.testing.assert_array_equal(sample.prompt_last_hidden_states, expected)
+            for side in ('pre', 'post'):
+                np.testing.assert_array_equal(sample.get_final_norm_states(side, 'prompt_last'), norm[side])
+            del reference
+        finally:
+            hook.remove()
+    return dict(capture_mode='prompt-last', samples_checked=len(run), samples_deep_checked=checked,
+                prompt_only_exact_replay=True, response_hidden_states_stored=False)
+
+
 class ReplayCollection(CollectionRunner):
-    def __init__(self, *args, responses, progress_callback=None, **kwargs):
+    def __init__(self, *args, responses, progress_callback=None, capture_mode='full', **kwargs):
         super().__init__(*args, **kwargs)
         self.responses = responses
         self.progress_callback = progress_callback
+        self.capture_mode = capture_mode
+        if capture_mode == 'prompt-last' and (self.capture_spec.save_per_token or self.capture_spec.save_mean_states):
+            raise ValueError('Prompt-only collection requires prompt-only capture flags')
+
+    def _create_manifest(self):
+        manifest = super()._create_manifest()
+        manifest.custom['safety_capture_mode'] = self.capture_mode
+        if self.capture_mode == 'prompt-last':
+            manifest.custom.update(activation_forward_input='prompt_ids_only',
+                                   token_alignment='prompt_last', mean_token_policy=None)
+        return manifest
 
     def _process_sample(self, item, prompt_text=None):
         started = time.perf_counter()
@@ -131,10 +223,14 @@ class ReplayCollection(CollectionRunner):
             raise ValueError('Screening/replay prompt mismatch')
         if self.model_manager.decode(row['token_ids']) != row['response_text']:
             raise ValueError('Screening/replay response mismatch')
-        gen = capture_saved(self.model_manager, ids, row['token_ids'], self.capture_spec,
-                            row['finish_reason'], row['effective_max_new_tokens'])
+        gen = None
         try:
-            hidden = self.extractor.extract(gen, input_ids=gen.input_ids)
+            if self.capture_mode == 'prompt-last':
+                hidden = capture_prompt_last(self.model_manager, ids, self.capture_spec)
+            else:
+                gen = capture_saved(self.model_manager, ids, row['token_ids'], self.capture_spec,
+                                    row['finish_reason'], row['effective_max_new_tokens'])
+                hidden = self.extractor.extract(gen, input_ids=gen.input_ids)
             result = CollectResult(
                 sample_idx=item.sample_idx, status=SampleStatus.OK, response_text=row['response_text'],
                 token_ids=row['token_ids'], token_offsets=self.offset_calculator.compute_offsets(row['response_text'], row['token_ids']),
@@ -150,7 +246,8 @@ class ReplayCollection(CollectionRunner):
                 self.progress_callback(item.sample_id)
             return result
         finally:
-            self._release_generation_tensors(gen)
+            if gen is not None:
+                self._release_generation_tensors(gen)
 
 
 def generate_batch(runner, items, indices, budget):
@@ -228,6 +325,8 @@ def main():
     parser.add_argument('--config', default='configs/safety_balanced.toml')
     parser.add_argument('--max-blocks', type=int, help='Stop after this many blocks, for pilot review; rerun without to resume')
     parser.add_argument('--max-batch-size', type=int, help='Operational batch cap, never greater than the frozen plan; does not change stored responses')
+    parser.add_argument('--capture-mode', choices=['full', 'prompt-last'],
+                        help='Activation scope for new shards; saved separately from the frozen screening plan and reused on resume')
     args = parser.parse_args()
     config_path = Path(args.config).resolve(); c = tomllib.loads(config_path.read_text())
     runtime_batch_size = c['batch_size'] if args.max_batch_size is None else args.max_batch_size
@@ -254,7 +353,6 @@ def main():
     items = items[:c['max_screened']]; by_id = {item.sample_id: item for item in items}
     if len(by_id) != len(items):
         raise ValueError('Duplicate source sample IDs')
-    capture = CaptureSpec(**base['capture'])
     generation = GenerationSpec(**{**base['generation'], 'max_new_tokens': c['max_new_tokens']})
     plan = dict(config=c, base=base, sample_ids=[i.sample_id for i in items],
                 source_files={p.name:sha256(p) for p in sorted(prepared.glob('*')) if p.suffix in ('.parquet', '.json')},
@@ -273,6 +371,16 @@ def main():
                   output=str(out), fingerprint=fingerprint, errors=[])
     status['runtime_batch_size'] = runtime_batch_size
     status['source_commit'] = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    policy_path = out / 'capture_policy.json'
+    policy = json.loads(policy_path.read_text()) if policy_path.exists() else {}
+    capture_mode = args.capture_mode or policy.get('mode', 'full')
+    capture = capture_spec_for_mode(base['capture'], capture_mode)
+    if policy.get('mode') != capture_mode:
+        history = policy.get('history', []) + [dict(at=now(), mode=capture_mode,
+            previous_mode=policy.get('mode', 'full'), source_commit=status['source_commit'])]
+        atomic_json(policy_path, dict(mode=capture_mode, capture=capture.to_dict(), history=history,
+            screening_fingerprint=fingerprint, existing_shards='Retained with their original capture manifests'))
+    status['capture_mode'] = capture_mode
     def save(stage, **extra):
         status.update(stage=stage, updated_at=now(), **extra)
         status['safety_rate'] = status['safe'] / max(1, status['safe'] + status['unsafe']) if status['safe']+status['unsafe'] else None
@@ -365,19 +473,22 @@ def main():
                             shard_records.append(record)
                         else:
                             if local.exists(): local.rename(local.with_name(local.name+'.interrupted-'+uuid.uuid4().hex))
-                            worst=sum(len(r['token_ids'])+3 for r in selected)*35*4096*4*1.5
+                            positions = len(selected) if capture_mode == 'prompt-last' else sum(len(r['token_ids'])+3 for r in selected)
+                            worst=positions*35*4096*4*1.5
                             if shutil.disk_usage(local_root).free < c['reserve_gib']*1024**3+worst:
                                 raise OSError('Local disk reserve would be exceeded')
                             collected=ReplayCollection(runner,SelectedPreparedTask(prepared,[by_id[i] for i in ids]),local,
                                 capture_spec=capture,generation_spec=generation,queue_size=2,
-                                run_config={**base,'model':{**base['model'],'identifier':c['model'],
+                                run_config={**base,'capture':capture.to_dict(),'model':{**base['model'],'identifier':c['model'],
                                     'revision':c['model_revision'],'device_map':'cuda:0'},
                                     'collection':{**base['collection'],'task':'wildjailbreak',
                                         'output':str(local),'prepared_path':str(prepared)},
-                                    'safety_balanced':c,'fingerprint':fingerprint},
+                                    'safety_balanced':c,'fingerprint':fingerprint,'safety_capture_mode':capture_mode},
                                 responses={r['sample_id']:r for r in selected},
+                                capture_mode=capture_mode,
                                 progress_callback=lambda sid:save('capture',last_captured_sample_id=sid)).run()
-                            run=Run(local); validation=validate_shard(runner,run,ids)
+                            run=Run(local)
+                            validation=(validate_prompt_shard if capture_mode == 'prompt-last' else validate_shard)(runner,run,ids)
                             for sample,row in zip(run,selected):
                                 if sample.token_ids.tolist()!=row['token_ids'] or sample.response_text!=row['response_text']:
                                     raise ValueError('Saved activation/Guard response mismatch')
@@ -388,7 +499,8 @@ def main():
                             record=dict(fingerprint=fingerprint,model_alias='llama2',sample_ids=ids,samples=len(ids),
                                 safe=sum(r['judge']['is_safe'] is True for r in selected),
                                 unsafe=sum(r['judge']['is_safe'] is False for r in selected),
-                                tokens=collected['n_tokens_total'],verification=validation,passed=True,created_at=now())
+                                tokens=collected['n_tokens_total'],capture_mode=capture_mode,
+                                verification=validation,passed=True,created_at=now())
                             atomic_json(local/'_SHARD.json',record)
                             pending.append(transfer_pool.submit(publish_with_retries,local,destination))
                         save('capture',published_shards=len(published)+len(shard_records))
