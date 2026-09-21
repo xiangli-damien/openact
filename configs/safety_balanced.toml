@@ -1,0 +1,18 @@
+# Bounded, resumable screening; only selected responses get activation tensors.
+base_config = "capability.toml"
+prepared_path = "/lambda/nfs/dami/openact-data/prepared/wildjailbreak"
+output = "/lambda/nfs/dami/openact/runs/safety_balanced_20260921"
+local_root = "/home/ubuntu/openact-safety-staging-20260921"
+model = "meta-llama/Llama-2-7b-chat-hf"
+model_revision = "f5db02db724555f92da89c216ac04704f23d4590"
+guard_model = "meta-llama/Llama-Guard-3-8B"
+guard_revision = "7327bd9f6efbbe6101dc6cc4736302b3cbb6e425"
+seed = 42
+target_per_class = 1500
+max_screened = 20000
+pilot_size = 64
+block_size = 256
+batch_size = 8
+shard_size = 32
+reserve_gib = 50
+max_new_tokens = 2048
