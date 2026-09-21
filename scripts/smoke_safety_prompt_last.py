@@ -78,10 +78,8 @@ def main():
                                old.get_final_norm_states(side, 'prompt_last'))
             errors = {key: float(np.max(np.linalg.norm(a-b, axis=-1) /
                         np.maximum(np.linalg.norm(b, axis=-1), 1e-12))) for key, (a,b) in pairs.items()}
-            # Changing sequence shape can change bf16 kernels. Independent same-
-            # shape replay above must be exact; causal full-prefix error is logged.
-            if max(errors.values()) > 0.05:
-                raise AssertionError(f'Prompt/full bf16 discrepancy: {errors}')
+            for a, b in pairs.values():
+                np.testing.assert_array_equal(a, b)
             assert sample.token_ids.tolist() == rows[sample.sample_id]['token_ids']
             comparisons.append(dict(sample_id=sample.sample_id, reference_run=str(path),
                 reference_index=index, prompt_tokens=len(sample.prompt_token_ids),

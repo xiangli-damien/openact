@@ -127,21 +127,27 @@ def capture_spec_for_mode(base_capture, mode):
     return CaptureSpec(**values)
 
 
-def capture_prompt_last(runner, prompt_ids, capture):
-    """Forward only the exact prompt; response text is used exclusively for labels."""
-    if not prompt_ids:
-        raise ValueError('Exact prompt IDs are required')
-    sequence = torch.tensor([prompt_ids], device=runner.device)
+def capture_prompt_last(runner, prompt_ids, token_ids, capture):
+    """Replay the original shape, copying only the causal prompt-last position.
+
+    Keeping the previous full replay shape avoids bf16 kernel differences being
+    confounded with the label when old safe and newly collected unsafe rows mix.
+    Causal attention prevents later response tokens from entering this position.
+    """
+    if not prompt_ids or not token_ids:
+        raise ValueError('Exact prompt and response IDs are required')
+    position = len(prompt_ids) - 1
+    sequence = torch.tensor([prompt_ids + token_ids], device=runner.device)
     kwargs = {'logits_to_keep': 1} if 'logits_to_keep' in inspect.signature(runner.model.forward).parameters else {}
     with torch.inference_mode(), ActivationRecorder(
             runner.model, capture, decoder_n_layers=runner.decoder_n_layers,
-            token_positions=[len(prompt_ids) - 1]) as recorder:
+            token_positions=[position]) as recorder:
         measured = runner.model(input_ids=sequence, attention_mask=torch.ones_like(sequence),
                                 use_cache=False, return_dict=True, output_hidden_states=True, **kwargs)
         if len(measured.hidden_states) != runner.probed_n_layers:
             raise ValueError('Unexpected prompt layer count')
         layers = capture.get_effective_layers(runner.probed_n_layers)
-        values = torch.stack([measured.hidden_states[i][0, -1] for i in layers]).float().cpu().numpy()
+        values = torch.stack([measured.hidden_states[i][0, position] for i in layers]).float().cpu().numpy()
         trace = recorder.trace()
         if len(trace.final_norm_pre) != 1 or len(trace.final_norm_post) != 1:
             raise ValueError('Expected exactly one prompt-last final norm trace')
@@ -151,7 +157,7 @@ def capture_prompt_last(runner, prompt_ids, capture):
 
 
 def validate_prompt_shard(runner, run, ids):
-    """Check all rows, then independently replay prompt-only states for two rows."""
+    """Check all rows, then independently replay prompt-last states for two rows."""
     if [s.sample_id for s in run] != ids or len(set(ids)) != len(ids):
         raise ValueError('Prompt shard sample IDs mismatch')
     issues = run.validate()
@@ -175,18 +181,19 @@ def validate_prompt_shard(runner, run, ids):
     checked = sorted(set([0, len(run) - 1]))
     for index in checked:
         sample = run[index]
-        ids_tensor = torch.tensor([sample.prompt_token_ids.tolist()], device=runner.device)
+        position = len(sample.prompt_token_ids) - 1
+        ids_tensor = torch.tensor([sample.prompt_token_ids.tolist() + sample.token_ids.tolist()], device=runner.device)
         norm = {}
         def save_norm(module, inputs, output):
-            norm['pre'] = inputs[0][0, -1].detach().float().cpu().numpy().copy()
-            norm['post'] = output[0, -1].detach().float().cpu().numpy().copy()
+            norm['pre'] = inputs[0][0, position].detach().float().cpu().numpy().copy()
+            norm['post'] = output[0, position].detach().float().cpu().numpy().copy()
         hook = find_final_norm(runner.model).register_forward_hook(save_norm)
         try:
             kwargs = {'logits_to_keep': 1} if 'logits_to_keep' in inspect.signature(runner.model.forward).parameters else {}
             with torch.inference_mode():
                 reference = runner.model(input_ids=ids_tensor, attention_mask=torch.ones_like(ids_tensor),
                     use_cache=False, output_hidden_states=True, return_dict=True, **kwargs)
-                expected = torch.stack([reference.hidden_states[i][0, -1] for i in layers]).float().cpu().numpy()
+                expected = torch.stack([reference.hidden_states[i][0, position] for i in layers]).float().cpu().numpy()
             np.testing.assert_array_equal(sample.prompt_last_hidden_states, expected)
             for side in ('pre', 'post'):
                 np.testing.assert_array_equal(sample.get_final_norm_states(side, 'prompt_last'), norm[side])
@@ -194,7 +201,7 @@ def validate_prompt_shard(runner, run, ids):
         finally:
             hook.remove()
     return dict(capture_mode='prompt-last', samples_checked=len(run), samples_deep_checked=checked,
-                prompt_only_exact_replay=True, response_hidden_states_stored=False)
+                prompt_last_exact_replay=True, response_hidden_states_stored=False)
 
 
 class ReplayCollection(CollectionRunner):
@@ -210,7 +217,8 @@ class ReplayCollection(CollectionRunner):
         manifest = super()._create_manifest()
         manifest.custom['safety_capture_mode'] = self.capture_mode
         if self.capture_mode == 'prompt-last':
-            manifest.custom.update(activation_forward_input='prompt_ids_only',
+            manifest.custom.update(activation_forward_input='exact_saved_prompt_and_response_ids',
+                                   activation_saved_positions='prompt_last_only',
                                    token_alignment='prompt_last', mean_token_policy=None)
         return manifest
 
@@ -226,7 +234,7 @@ class ReplayCollection(CollectionRunner):
         gen = None
         try:
             if self.capture_mode == 'prompt-last':
-                hidden = capture_prompt_last(self.model_manager, ids, self.capture_spec)
+                hidden = capture_prompt_last(self.model_manager, ids, row['token_ids'], self.capture_spec)
             else:
                 gen = capture_saved(self.model_manager, ids, row['token_ids'], self.capture_spec,
                                     row['finish_reason'], row['effective_max_new_tokens'])

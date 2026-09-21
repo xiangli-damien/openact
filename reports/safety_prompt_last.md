@@ -26,12 +26,17 @@ New shards contain:
 - Exact prompt IDs, generated response IDs/text, response metrics, and Guard labels.
 - No generation-token activations or generation-mean activations.
 
-The capture forward consumes **only prompt IDs**, with no response tokens.
-Saved tensors are float32, preserving bf16 values. The original response still
+The forward replays the exact saved prompt and response IDs, with the same shape
+as previous full captures, but extracts **only the prompt-last position**. Causal
+attention prevents future answer tokens from affecting it. Saved tensors are
+float32, preserving bf16 values. The original response still
 has to be generated and judged, even after the safe quota is full. This change
 reduces capture/storage cost, not the number of candidates needed for rare labels.
-Shape-dependent bf16 differences versus previous full-sequence replay are logged
-by the GPU smoke test; repeated prompt-only forward checks must match exactly.
+GPU testing found about 2% bf16 differences when switching to a shorter,
+prompt-only forward. Keeping the original shape avoids confounding capture mode
+with the label (the safe quota was filled before the switch). The GPU smoke test
+requires exact equality with previously saved prompt-last values; CPU tests also
+change future response token IDs and require the prompt state to stay identical.
 
 ## HSS reader
 

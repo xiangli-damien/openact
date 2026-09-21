@@ -12,7 +12,7 @@ from scripts import run_safety_balanced as safety
 
 
 @pytest.mark.parametrize('family', ['llama', 'qwen2'])
-def test_prompt_only_matches_causal_full_replay_without_forwarding_response(family):
+def test_prompt_only_storage_matches_full_replay_and_is_causal(family):
     runner = make_runner(family)
     full = CaptureSpec(hidden_states_dtype='float32')
     capture = safety.capture_spec_for_mode(full.to_dict(), 'prompt-last')
@@ -23,13 +23,15 @@ def test_prompt_only_matches_causal_full_replay_without_forwarding_response(fami
     hook = runner.model.register_forward_pre_hook(
         lambda m, args, kwargs: calls.append(kwargs['input_ids'].shape[1]), with_kwargs=True)
     runner.model.generate = lambda **kwargs: (_ for _ in ()).throw(AssertionError('Must not generate'))
-    actual = safety.capture_prompt_last(runner, prompt, capture)
+    actual = safety.capture_prompt_last(runner, prompt, [4, 5, 6, 7], capture)
+    changed_future = safety.capture_prompt_last(runner, prompt, [7, 6, 5, 4], capture)
     hook.remove()
-    assert calls == [len(prompt)]
+    assert calls == [len(prompt) + 4, len(prompt) + 4]
     assert actual.n_tokens == 0 and actual.per_token_states is None and actual.mean_states is None
     assert actual.final_norm_pre is None and actual.final_norm_post is None
     for key in ['prompt_last_states', 'final_norm_pre_prompt_last', 'final_norm_post_prompt_last']:
-        np.testing.assert_allclose(getattr(actual, key), getattr(expected, key), atol=1e-6)
+        np.testing.assert_array_equal(getattr(actual, key), getattr(expected, key))
+        np.testing.assert_array_equal(getattr(actual, key), getattr(changed_future, key))
 
 
 def test_prompt_only_run_preserves_response_tokens_labels_and_validates(tmp_path):
@@ -52,11 +54,11 @@ def test_prompt_only_run_preserves_response_tokens_labels_and_validates(tmp_path
         responses={item.sample_id: row}).run()
     run = Run(tmp_path/'run')
     validation = safety.validate_prompt_shard(runner, run, [item.sample_id])
-    assert validation['prompt_only_exact_replay'] and not run.validate()
+    assert validation['prompt_last_exact_replay'] and not run.validate()
     assert run[0].token_ids.tolist() == row['token_ids']
     assert run[0].response_text == row['response_text']
     assert run[0].prompt_last_hidden_states.shape == (3, 16)
-    assert run.manifest.custom['activation_forward_input'] == 'prompt_ids_only'
+    assert run.manifest.custom['activation_saved_positions'] == 'prompt_last_only'
     assert run._df.n_hidden_state_tokens.tolist() == [0]
     assert safety.label_result([row])[0].is_correct is False
     # Validation must detect corruption, not just check array presence.
