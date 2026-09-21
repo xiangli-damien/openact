@@ -1,3 +1,5 @@
+
+
 # OpenAct: LLM Activation Data Infrastructure
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -47,7 +49,7 @@ hs = sample.get_span_hidden_states(span, layers=[-1], reduction="mean")
 No tokenizer needed at read time. Works correctly for CJK, Arabic, multi-byte characters, and byte-level tokenizers (LLaMA, Qwen).
 
 ### Zero GPU for Reading
-`openact-core` depends only on numpy, zarr, pandas, and pyarrow. You can load a 32-layer, 4096-dim hidden state dataset on a CPU-only machine, a CI server, or a Jupyter notebook without ever importing torch.
+`openact-core` depends only on numpy, zarr, pandas, pyarrow, numcodecs, and pyyaml. You can load a 32-layer, 4096-dim hidden state dataset on a CPU-only machine, a CI server, or a Jupyter notebook without ever importing torch.
 
 ### Teacher-Forced Activation Collection
 Generation chooses the response tokens. A separate teacher-forced forward pass over
