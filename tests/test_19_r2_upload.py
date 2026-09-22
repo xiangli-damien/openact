@@ -12,6 +12,19 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import upload_r2_collection as upload
 
 
+def test_nfs_atomic_status_replacement_retries_stale_handle(tmp_path,monkeypatch):
+    import errno
+    p=tmp_path/'status.json';p.write_text('{"verified": 1}')
+    original=Path.read_text;calls=[]
+    def flaky(path,*args,**kwargs):
+        calls.append(path)
+        if len(calls)==1:raise OSError(errno.ESTALE,'Stale file handle')
+        return original(path,*args,**kwargs)
+    monkeypatch.setattr(Path,'read_text',flaky)
+    monkeypatch.setattr(upload.time,'sleep',lambda _:None)
+    assert upload.read_json(p)=={'verified':1} and len(calls)==2
+
+
 def source_fixture(tmp_path):
     source=tmp_path/'shard_00000_00002';(source/'labels').mkdir(parents=True)
     files={'data.parquet':b'question answer'*35,'labels/correctness.parquet':b'true false',

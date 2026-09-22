@@ -11,6 +11,7 @@ import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait, FIRST_COMPLETED
 import configparser
 from contextlib import contextmanager
+import errno
 import fcntl
 import hashlib
 import io
@@ -40,6 +41,15 @@ def save_json(path,value):
 
 
 def now():return time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
+
+
+def read_json(path):
+    """Atomic replacement on NFS can invalidate an already-open reader handle."""
+    for attempt in range(8):
+        try:return json.loads(Path(path).read_text())
+        except OSError as exc:
+            if exc.errno not in [errno.ESTALE,errno.ENOENT] or attempt==7:raise
+            time.sleep(.05*(attempt+1))
 
 
 @contextmanager
@@ -91,11 +101,11 @@ def put_bytes(s3,cfg,key,data,content_type='application/octet-stream'):
 def audit_shard(task):
     path,run,model=task
     import pyarrow.parquet as pq
-    receipt_path=path/'_COPY_VERIFIED.json';receipt=json.loads(receipt_path.read_text())
+    receipt_path=path/'_COPY_VERIFIED.json';receipt=read_json(receipt_path)
     for name in ['_SHARD.json','_SUCCESS','manifest.json','data.parquet','labels/correctness.parquet','tensors.zarr/.zmetadata']:
         expected=receipt['files'][name];p=path/name
         if p.stat().st_size!=expected['bytes'] or sha256_file(p)!=expected['sha256']:raise ValueError(f'Metadata checksum mismatch: {p}')
-    shard=json.loads((path/'_SHARD.json').read_text());manifest=json.loads((path/'manifest.json').read_text())
+    shard=read_json(path/'_SHARD.json');manifest=read_json(path/'manifest.json')
     expected_model={'llama32':'meta-llama/Llama-3.2-1B-Instruct','qwen2':'Qwen/Qwen2-7B-Instruct','llama3':'meta-llama/Meta-Llama-3-8B-Instruct'}[model]
     if manifest['model']['identifier']!=expected_model or shard['model_id']!=expected_model or shard['model_alias']!=model:
         raise ValueError('Wrong model under dataset/model path')
@@ -108,7 +118,7 @@ def audit_shard(task):
     if any(x not in [None,''] for x in labels.get('error',[])):raise ValueError('Evaluation errors present')
     if any(labels.get('meta_gt_missing',[])):raise ValueError('Missing ground-truth labels')
     if set(data['status'])!={1}:raise ValueError('Incomplete collection rows')
-    z=json.loads((path/'tensors.zarr/.zmetadata').read_text())['metadata']
+    z=read_json(path/'tensors.zarr/.zmetadata')['metadata']
     for group in ['hidden_states','final_norm/pre','final_norm/post']:
         for rep in ['per_token','mean','prompt_last']:
             if f'{group}/{rep}/.zarray' not in z:raise ValueError(f'Missing full activation array: {group}/{rep}')
@@ -128,7 +138,7 @@ def prepare(cfg):
     root=Path(cfg['state_root']);root.mkdir(parents=True,exist_ok=True)
     frozen={k:v for k,v in cfg.items() if k not in ['workers','part_workers','audit_workers','retries','credentials_file']}
     if (root/'plan.json').exists():
-        plan=json.loads((root/'plan.json').read_text())
+        plan=read_json(root/'plan.json')
         if plan['config']!=frozen:raise ValueError('Upload protocol changed; use a new state directory')
         return plan
     tasks=[]
@@ -199,7 +209,7 @@ class MultipartSink:
         self.size=cfg['part_mib']*1024**2;self.buffer=bytearray();self.total=0;self.sha=hashlib.sha256()
         self.next_part=1;self.pending={};self.part_md5={};self.mutex=threading.Lock()
         self.pool=ThreadPoolExecutor(cfg['part_workers']);self.completed=False
-        self.state=json.loads(self.path.read_text()) if self.path.exists() else None
+        self.state=read_json(self.path) if self.path.exists() else None
         if self.state and (self.state['key']!=key or self.state['source_sha256']!=source_sha):raise ValueError('Multipart source/key changed')
         if self.state:
             try:
@@ -281,21 +291,21 @@ def upload_shard(s3,cfg,rec):
     if sha256_file(copy_path)!=rec['copy_receipt_sha256']:raise ValueError('Source receipt changed since audit')
     remote=head(s3,cfg['bucket'],key)
     if receipt_path.exists():
-        receipt=json.loads(receipt_path.read_text())
+        receipt=read_json(receipt_path)
         if not remote or remote['ContentLength']!=receipt['archive']['bytes'] or remote['ETag'].strip('"')!=receipt['archive']['etag']:
             raise ValueError('Previously verified cloud archive missing/changed')
         return receipt
     if remote:
         # Recover a complete object if the process died between CompleteMultipartUpload and receipt publication.
-        state=json.loads(parts_path.read_text()) if parts_path.exists() else {}
+        state=read_json(parts_path) if parts_path.exists() else {}
         if not index_path.exists() or remote.get('Metadata',{}).get('source-copy-receipt-sha256')!=rec['copy_receipt_sha256']:
             raise ValueError('Existing archive has no trusted local completion state; refusing overwrite')
         if state.get('archive_bytes')!=remote['ContentLength'] or state.get('expected_etag')!=remote['ETag'].strip('"'):
             raise ValueError('Uncertain completed archive failed recovery verification')
         archive=dict(bytes=state['archive_bytes'],sha256=state['archive_sha256'],etag=state['expected_etag'],parts=state['parts_total'])
-        index=json.loads(index_path.read_text())
+        index=read_json(index_path)
     else:
-        original=json.loads(copy_path.read_text());sink=MultipartSink(s3,cfg,key,parts_path,rec['copy_receipt_sha256'])
+        original=read_json(copy_path);sink=MultipartSink(s3,cfg,key,parts_path,rec['copy_receipt_sha256'])
         try:
             index=stream_archive(source,original['files'],sink)
             if next(r['sha256'] for r in index if r['path']=='_COPY_VERIFIED.json')!=rec['copy_receipt_sha256']:
@@ -369,8 +379,8 @@ def run(cfg,limit=None):
         verified=[];inflight_bytes=0
         for rec in plan['shards']:
             rp,pp,_=archive_receipt_paths(cfg,rec)
-            if rp.exists():verified.append(json.loads(rp.read_text()))
-            elif pp.exists():inflight_bytes+=sum(v['bytes'] for v in json.loads(pp.read_text()).get('parts',{}).values())
+            if rp.exists():verified.append(read_json(rp))
+            elif pp.exists():inflight_bytes+=sum(v['bytes'] for v in read_json(pp).get('parts',{}).values())
         record=dict(at=now(),pid=os.getpid(),stage=stage,verified_shards=len(verified),total_shards=len(plan['shards']),
             verified_samples=sum(r['samples'] for r in verified),total_samples=plan['samples'],
             verified_source_bytes=sum(r['source_bytes'] for r in verified),source_bytes=plan['source_bytes'],
