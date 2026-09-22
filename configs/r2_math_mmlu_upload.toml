@@ -1,0 +1,15 @@
+source_root = "/lambda/nfs/dami/openact/runs"
+state_root = "/lambda/nfs/dami/openact/runs/r2_math_mmlu_20260922"
+credentials_file = "/home/ubuntu/.config/openact/r2-upload.conf"
+bucket = "autoact-data"
+prefix = "openact/math-mmlu-full-20260916"
+runs = ["math_full_20260916", "mmlu_full_20260916"]
+models = ["llama32", "qwen2", "llama3"]
+expected_counts = [5000, 14042]
+workers = 4
+part_workers = 8
+part_mib = 64
+audit_workers = 6
+retries = 5
+verify_range_files = 3
+
