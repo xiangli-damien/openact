@@ -1,6 +1,6 @@
 """Pinned GSM8K test collection using the exact MATH zot/boxed prompt format.
 
-Fresh study data: all 1,319 test questions, Qwen2-7B, ordinary verified OpenAct
+All 1,319 test questions, Qwen2-7B or Llama-3-8B, ordinary verified OpenAct
 shards including all generated-token activations and both final-norm sides.
 Small local shards are copied to dami with SHA checks before staging is removed.
 """
@@ -16,7 +16,7 @@ import subprocess
 import traceback
 
 from openact_collect import CollectionRunner, ModelRunner
-from openact_collect.config import load_run_config
+from openact_collect.config import load_run_config, tomllib
 from openact_collect.data import PreparedDatasetWriter
 from openact_collect.inspect import build_prepared_row
 from openact_collect.schema import GenerationSpec, CaptureSpec
@@ -33,6 +33,17 @@ from run_math_collection import (atomic_json, sha256, now, shard_ranges, validat
 MODEL = 'Qwen/Qwen2-7B-Instruct'
 MODEL_REVISION = 'f2826a00ceef68f0f2b946d945ecc0477ce4450c'
 DATASET_REVISION = '740312add88f781978c0658806c59bc2815b9866'
+
+
+def model_settings(config, alias):
+    settings = tomllib.loads(Path(config).read_text())
+    if settings['dataset_revision'] != DATASET_REVISION or settings['split'] != 'test' or settings['expected_samples'] != 1319:
+        raise ValueError('This launcher requires pinned GSM8K main/test, all 1,319 rows')
+    spec = settings['models'][alias]
+    expected = {'qwen2': MODEL, 'llama3': 'meta-llama/Meta-Llama-3-8B-Instruct'}
+    if spec['identifier'] != expected[alias] or len(spec['revision']) != 40:
+        raise ValueError('Use the approved model and a pinned revision')
+    return spec
 
 
 class MatchedMathGSM8K(GSM8KTask):
@@ -82,6 +93,9 @@ def prepare(path):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    root=Path(__file__).resolve().parents[1]
+    p.add_argument('--model', choices=['qwen2','llama3'], default='qwen2')
+    p.add_argument('--config', type=Path, default=root/'configs/gsm8k_test.toml')
     p.add_argument('--prepared',type=Path,default=Path('/lambda/nfs/dami/openact-data/prepared/gsm8k_matched_math_20260923'))
     p.add_argument('--local-root',type=Path,default=Path('/home/ubuntu/openact-gsm8k-20260923'))
     p.add_argument('--output',type=Path,default=Path('/lambda/nfs/dami/openact/runs/gsm8k_transfer_20260923'))
@@ -90,6 +104,8 @@ def main():
     p.add_argument('--prepare-only',action='store_true')
     p.add_argument('--smoke',action='store_true',help='Two questions, separate output path required')
     args=p.parse_args()
+    spec=model_settings(args.config,args.model)
+    model_id,model_revision=spec['identifier'],spec['revision']
     if args.shard_size<1 or args.reserve_gib<1:
         p.error('Positive shard size and reserve required')
     args.output.mkdir(parents=True,exist_ok=True)
@@ -104,14 +120,20 @@ def main():
     if len(items)!=1319:
         raise ValueError('Prepared coverage changed')
     selected=items[:2] if args.smoke else items
-    root=Path(__file__).resolve().parents[1]
     base=load_run_config(str(root/'configs/capability.toml'))
     base.pop('model_catalog',None);base.pop('safety_judge',None)
-    base['model'].update(identifier=MODEL,revision=MODEL_REVISION,device_map='cuda:0')
+    base['model'].update(identifier=model_id,revision=model_revision,device_map='cuda:0')
     base['collection'].update(task='gsm8k',template='matched_math_zot',prepared_path=str(args.prepared))
     generation=GenerationSpec(**base['generation']);capture=CaptureSpec(**base['capture'])
-    files=[Path(__file__),root/'scripts/run_math_collection.py',root/'scripts/run_collection_matrix.py',root/'configs/capability.toml',args.prepared/'prepared_manifest.json']
-    plan={'model':MODEL,'model_revision':MODEL_REVISION,'dataset_revision':DATASET_REVISION,
+    if generation.do_sample or generation.temperature != 0 or generation.max_new_tokens != 2048:
+        raise ValueError('Expected greedy decoding with the existing 2048-token cap')
+    if (capture.hidden_states_layers is not None or capture.hidden_states_dtype != 'float32'
+            or not all((capture.hidden_states,capture.final_norm,capture.save_per_token,
+                        capture.save_mean_states,capture.save_prompt_last))):
+        raise ValueError('All layers, full generated tokens, prompt-last and both final norm sides required')
+    files=[Path(__file__),args.config,root/'scripts/run_math_collection.py',root/'scripts/run_collection_matrix.py',root/'configs/capability.toml',args.prepared/'prepared_manifest.json']
+    plan={'model':model_id,'model_alias':args.model,'model_revision':model_revision,'dataset_revision':DATASET_REVISION,
+          'expected_repetition_penalty':spec['repetition_penalty'],
           'generation':asdict(generation),'capture':asdict(capture),'samples':len(selected),
           'shard_size':args.shard_size,'mode':'smoke' if args.smoke else 'full',
           'sha256':{str(f):sha256(f) for f in files}}
@@ -127,13 +149,18 @@ def main():
     def save():
         report['updated_at']=now();report['completed_samples']=sum(r['samples'] for r in report['rows'])
         atomic_json(args.output/'job_status.json',report)
-    runner=ModelRunner(MODEL,dtype='bfloat16',device_map='cuda:0',attn_implementation='sdpa',revision=MODEL_REVISION)
+    runner=ModelRunner(model_id,dtype='bfloat16',device_map='cuda:0',attn_implementation='sdpa',revision=model_revision)
     try:
-        save();runner.load();report['context_preflight']=context_preflight(runner,items,generation.max_new_tokens)
+        save();runner.load()
+        resolved_generation=runner.model.generation_config.to_dict()
+        if resolved_generation.get('repetition_penalty',1.0) != spec['repetition_penalty']:
+            raise ValueError('Pinned model generation defaults changed')
+        atomic_json(args.output/'model_generation_defaults.json',resolved_generation)
+        report['context_preflight']=context_preflight(runner,items,generation.max_new_tokens)
         for start,stop in shard_ranges(len(selected),args.shard_size):
-            name=f'shard_{start:05d}_{stop:05d}';dest=args.output/'qwen2'/name;local=args.local_root/name
+            name=f'shard_{start:05d}_{stop:05d}';dest=args.output/args.model/name;local=args.local_root/name
             ids=[i.sample_id for i in selected[start:stop]]
-            identity={'fingerprint':key,'model_alias':'qwen2','model_id':MODEL,'start':start,'stop':stop,'sample_ids':ids}
+            identity={'fingerprint':key,'model_alias':args.model,'model_id':model_id,'start':start,'stop':stop,'sample_ids':ids}
             if dest.exists():
                 verified_receipt(dest);record=json.loads((dest/'_SHARD.json').read_text())
                 if any(record[k]!=v for k,v in identity.items()):

@@ -1,0 +1,15 @@
+# Full official main/test split. Same questions and boxed zero-shot CoT as MATH.
+dataset_revision = "740312add88f781978c0658806c59bc2815b9866"
+split = "test"
+expected_samples = 1319
+
+[models.qwen2]
+identifier = "Qwen/Qwen2-7B-Instruct"
+revision = "f2826a00ceef68f0f2b946d945ecc0477ce4450c"
+# Pinned model defaults, inherited by the existing MATH/GSM8K protocol.
+repetition_penalty = 1.05
+
+[models.llama3]
+identifier = "meta-llama/Meta-Llama-3-8B-Instruct"
+revision = "8afb486c1db24fe5011ec46dfbe5b5dccdb575c2"
+repetition_penalty = 1.0
