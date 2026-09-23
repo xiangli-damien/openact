@@ -31,3 +31,9 @@ The queue first audits/reuses Qwen, waits for GPU idleness, runs the two-row rea
 Read `queue_status.json`, `llama3_full/job_status.json`, and stage logs. `collection_manifest.json` appears only after both complete audits pass. Existing Qwen data is referenced by path, not duplicated or relabelled. The collection audit rehashes every stored file and re-scores every answer, verifies original GPU causal-replay receipts; it does not claim to perform a second full GPU replay.
 
 HSS GPU functional work must wait while this queue owns the GPU; CPU code preparation and analysis may continue. No new GPU rental or environment upgrade is needed.
+
+## Execution amendment
+
+18:39 UTC: Qwen audit passed all 1,319 rows/42 shards, all-file SHA and independent answer re-scoring. 341,885 generated tokens; 1,134 correct (86.0%); 57,055,267,394 bytes including transfer receipts.
+
+The initial Llama smoke stopped **before generating any samples**: Transformers 5 leaves an omitted repetition penalty as `None` until `generate()` fills global defaults. The configuration check now uses that same fallback rule and saves both configured and resolved defaults; the generation protocol is unchanged. A regression test covers omitted versus explicit repetition penalty. Preserve the old failure and launch the corrected queue under `/lambda/nfs/dami/openact/runs/gsm8k_test_20260923_v2`, staging `/home/ubuntu/openact-gsm8k-llama3-20260923-v2`. Its `--reuse-qwen-audit-sha256` points to the exact already-completed Qwen audit, avoiding a redundant 53 GiB scan. Old and new collection plans remain separate.

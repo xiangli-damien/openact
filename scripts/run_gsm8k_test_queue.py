@@ -17,6 +17,7 @@ def main():
     p.add_argument('--root',type=Path,default=Path('/lambda/nfs/dami/openact/runs/gsm8k_test_20260923'))
     p.add_argument('--qwen-root',type=Path,default=Path('/lambda/nfs/dami/openact/runs/gsm8k_transfer_20260923'))
     p.add_argument('--local-root',type=Path,default=Path('/home/ubuntu/openact-gsm8k-llama3-20260923'))
+    p.add_argument('--reuse-qwen-audit-sha256',help='Reuse the exact SHA-pinned already completed all-file audit')
     a=p.parse_args(); a.root.mkdir(parents=True,exist_ok=True)
     lock=(a.root/'.queue.lock').open('a'); fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     source=Path(__file__).resolve().parents[1]
@@ -41,7 +42,19 @@ def main():
         stage(name,'audit_gsm8k_test.py',['--root',root,'--model',model,*(['--smoke'] if smoke else [])])
     try:
         save()
-        audit('audit_qwen_reuse',a.qwen_root,'qwen2')
+        if a.reuse_qwen_audit_sha256:
+            path=a.qwen_root/'full_test_audit.json'
+            receipt=json.loads(path.read_text())
+            if (sha256(path)!=a.reuse_qwen_audit_sha256 or not receipt['passed']
+                    or receipt['samples']!=1319 or not receipt['full_file_sha256_rechecked']
+                    or not receipt['labels_independently_rescored']
+                    or receipt['model']!='Qwen/Qwen2-7B-Instruct'
+                    or receipt['plan_sha256']!=sha256(a.qwen_root/'job_plan.json')):
+                raise ValueError('Completed Qwen audit receipt mismatch')
+            state['reused_qwen_audit_sha256']=a.reuse_qwen_audit_sha256
+            state['completed_stages'].append('reuse_verified_qwen_audit');save()
+        else:
+            audit('audit_qwen_reuse',a.qwen_root,'qwen2')
         state['stage']='waiting_for_idle_gpu';state['child_pid']=None;save()
         while subprocess.check_output(['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader,nounits'],text=True).strip():
             time.sleep(30);save()

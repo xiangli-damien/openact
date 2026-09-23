@@ -46,6 +46,14 @@ def model_settings(config, alias):
     return spec
 
 
+def resolved_model_generation_defaults(config):
+    # Transformers 5 represents unspecified values as None and fills them from
+    # these global defaults inside _prepare_generation_config at generate time.
+    raw = config.to_dict()
+    defaults = config._get_default_generation_params()
+    return {**defaults, **{k: v for k, v in raw.items() if v is not None}}
+
+
 class MatchedMathGSM8K(GSM8KTask):
     def get_prompt_template_for_item(self, item=None):
         return replace(get_template('math','zot'), name='gsm8k_matched_math_zot')
@@ -152,10 +160,11 @@ def main():
     runner=ModelRunner(model_id,dtype='bfloat16',device_map='cuda:0',attn_implementation='sdpa',revision=model_revision)
     try:
         save();runner.load()
-        resolved_generation=runner.model.generation_config.to_dict()
-        if resolved_generation.get('repetition_penalty',1.0) != spec['repetition_penalty']:
+        resolved_generation=resolved_model_generation_defaults(runner.model.generation_config)
+        if resolved_generation['repetition_penalty'] != spec['repetition_penalty']:
             raise ValueError('Pinned model generation defaults changed')
-        atomic_json(args.output/'model_generation_defaults.json',resolved_generation)
+        atomic_json(args.output/'model_generation_defaults.json',{
+            'configured':runner.model.generation_config.to_dict(),'resolved':resolved_generation})
         report['context_preflight']=context_preflight(runner,items,generation.max_new_tokens)
         for start,stop in shard_ranges(len(selected),args.shard_size):
             name=f'shard_{start:05d}_{stop:05d}';dest=args.output/args.model/name;local=args.local_root/name

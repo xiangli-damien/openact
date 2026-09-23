@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
-from run_gsm8k_transfer import MatchedMathGSM8K, transfer_split, model_settings
+from run_gsm8k_transfer import MatchedMathGSM8K, transfer_split, model_settings, resolved_model_generation_defaults
 from openact_core.tasks.templates import get_template
 from openact_core.tasks.parsers.numeric import NumericParser
 
@@ -42,3 +42,12 @@ def test_wrong_split_rejected_before_gpu_load(tmp_path):
     bad.write_text(config.read_text().replace('split = "test"','split = "train"'))
     with pytest.raises(ValueError,match='main/test'):
         model_settings(bad,'llama3')
+
+
+def test_unspecified_transformers_generation_values_use_library_defaults():
+    from transformers import GenerationConfig
+    config=GenerationConfig(repetition_penalty=None)
+    assert resolved_model_generation_defaults(config)['repetition_penalty']==1.0
+    assert config.repetition_penalty is None  # Do not mutate pinned defaults.
+    config.repetition_penalty=1.05
+    assert resolved_model_generation_defaults(config)['repetition_penalty']==1.05
