@@ -1,0 +1,621 @@
+{
+  "passed": true,
+  "root": "/lambda/nfs/dami/openact/runs/belebele_full_20260925",
+  "fingerprint": "e2fd068d9872295d2255f237ae6529284dd821cd4af1790dd1b08354c8f58923",
+  "completed_at": "2026-09-26T00:23:40.088273+00:00",
+  "samples": 12,
+  "cells": 6,
+  "rows": [
+    {
+      "model_alias": "llama32",
+      "language": "en",
+      "sample_ids": [
+        "belebele_eng_Latn_0",
+        "belebele_eng_Latn_899"
+      ],
+      "samples": 2,
+      "tokens": 324,
+      "collect_seconds": 5.46417760848999,
+      "audit_seconds": 0.36137005605269223,
+      "evaluation": {
+        "run_path": "/home/ubuntu/openact-belebele-20260925/smoke/llama32/belebele_en/shard_00000_00002",
+        "model": "Llama-3.2-1B-Instruct",
+        "dataset": "belebele",
+        "evaluator": "parser/belebele",
+        "accuracy": 0.5,
+        "n_correct": 1,
+        "n_evaluated": 2,
+        "n_total": 2,
+        "n_error": 0,
+        "metrics": {
+          "accuracy": 0.5,
+          "n_total": 2,
+          "n_evaluated": 2,
+          "n_correct": 1,
+          "n_incorrect": 1,
+          "n_error": 0,
+          "n_no_ground_truth": 0,
+          "mean_score": 0.5,
+          "std_score": 0.5
+        },
+        "label_path": "labels/correctness.parquet",
+        "pipeline_seconds": 0.006881493027321994,
+        "evaluation_seconds": 0.001286152983084321,
+        "setup_teardown_and_io_seconds": 0.005595340044237673
+      },
+      "verification": {
+        "samples_deep_checked": [
+          0
+        ],
+        "sample_checks": [
+          {
+            "sample_index": 0,
+            "prompt_tokens": 259,
+            "generated_tokens": 199,
+            "hidden_shape": [
+              199,
+              17,
+              2048
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.029919224041532688,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              199
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          }
+        ],
+        "fixed_shape_exact_replay_and_causality": true,
+        "fixed_shape_max_relative_l2_error": 0.0,
+        "max_relative_l2_error": 0.029919224041532688,
+        "stored_array_check_seconds": 0.0616838620044291,
+        "causal_replay_seconds": 0.2827128309290856
+      },
+      "peak_gpu_bytes": 2552923136,
+      "run_path": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/smoke/llama32/belebele_en/shard_00000_00002",
+      "stored_bytes": 19003178,
+      "transfer_seconds": 1.5038007010007277
+    },
+    {
+      "model_alias": "llama32",
+      "language": "de",
+      "sample_ids": [
+        "belebele_deu_Latn_0",
+        "belebele_deu_Latn_899"
+      ],
+      "samples": 2,
+      "tokens": 561,
+      "collect_seconds": 8.854850769042969,
+      "audit_seconds": 1.024225611006841,
+      "evaluation": {
+        "run_path": "/home/ubuntu/openact-belebele-20260925/smoke/llama32/belebele_de/shard_00000_00002",
+        "model": "Llama-3.2-1B-Instruct",
+        "dataset": "belebele",
+        "evaluator": "parser/belebele",
+        "accuracy": 0.5,
+        "n_correct": 1,
+        "n_evaluated": 2,
+        "n_total": 2,
+        "n_error": 0,
+        "metrics": {
+          "accuracy": 0.5,
+          "n_total": 2,
+          "n_evaluated": 2,
+          "n_correct": 1,
+          "n_incorrect": 1,
+          "n_error": 0,
+          "n_no_ground_truth": 0,
+          "mean_score": 0.5,
+          "std_score": 0.5
+        },
+        "label_path": "labels/correctness.parquet",
+        "pipeline_seconds": 0.00688263401389122,
+        "evaluation_seconds": 0.0012209409615024924,
+        "setup_teardown_and_io_seconds": 0.005661693052388728
+      },
+      "verification": {
+        "samples_deep_checked": [
+          0,
+          1
+        ],
+        "sample_checks": [
+          {
+            "sample_index": 0,
+            "prompt_tokens": 322,
+            "generated_tokens": 231,
+            "hidden_shape": [
+              231,
+              17,
+              2048
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.0,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              231
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          },
+          {
+            "sample_index": 1,
+            "prompt_tokens": 329,
+            "generated_tokens": 330,
+            "hidden_shape": [
+              330,
+              17,
+              2048
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.0,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              330
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          }
+        ],
+        "fixed_shape_exact_replay_and_causality": true,
+        "fixed_shape_max_relative_l2_error": 0.0,
+        "max_relative_l2_error": 0.0,
+        "stored_array_check_seconds": 0.0778283829567954,
+        "causal_replay_seconds": 0.9253318980336189
+      },
+      "peak_gpu_bytes": 2583929344,
+      "run_path": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/smoke/llama32/belebele_de/shard_00000_00002",
+      "stored_bytes": 32750115,
+      "transfer_seconds": 2.2516367939533666
+    },
+    {
+      "model_alias": "llama32",
+      "language": "zh",
+      "sample_ids": [
+        "belebele_zho_Hans_0",
+        "belebele_zho_Hans_899"
+      ],
+      "samples": 2,
+      "tokens": 419,
+      "collect_seconds": 6.649660348892212,
+      "audit_seconds": 0.6203264510259032,
+      "evaluation": {
+        "run_path": "/home/ubuntu/openact-belebele-20260925/smoke/llama32/belebele_zh/shard_00000_00002",
+        "model": "Llama-3.2-1B-Instruct",
+        "dataset": "belebele",
+        "evaluator": "parser/belebele",
+        "accuracy": 0.0,
+        "n_correct": 0,
+        "n_evaluated": 2,
+        "n_total": 2,
+        "n_error": 0,
+        "metrics": {
+          "accuracy": 0.0,
+          "n_total": 2,
+          "n_evaluated": 2,
+          "n_correct": 0,
+          "n_incorrect": 2,
+          "n_error": 0,
+          "n_no_ground_truth": 0,
+          "mean_score": 0.0,
+          "std_score": 0.0
+        },
+        "label_path": "labels/correctness.parquet",
+        "pipeline_seconds": 0.007092269021086395,
+        "evaluation_seconds": 0.0013376350980252028,
+        "setup_teardown_and_io_seconds": 0.005754633923061192
+      },
+      "verification": {
+        "samples_deep_checked": [
+          0,
+          1
+        ],
+        "sample_checks": [
+          {
+            "sample_index": 0,
+            "prompt_tokens": 277,
+            "generated_tokens": 167,
+            "hidden_shape": [
+              167,
+              17,
+              2048
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.018607663124475683,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              167
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          },
+          {
+            "sample_index": 1,
+            "prompt_tokens": 345,
+            "generated_tokens": 252,
+            "hidden_shape": [
+              252,
+              17,
+              2048
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.019056966158182514,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              252
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          }
+        ],
+        "fixed_shape_exact_replay_and_causality": true,
+        "fixed_shape_max_relative_l2_error": 0.0,
+        "max_relative_l2_error": 0.019056966158182514,
+        "stored_array_check_seconds": 0.06089148495811969,
+        "causal_replay_seconds": 0.5412352409912273
+      },
+      "peak_gpu_bytes": 2575200256,
+      "run_path": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/smoke/llama32/belebele_zh/shard_00000_00002",
+      "stored_bytes": 24558974,
+      "transfer_seconds": 1.9564031671034172
+    },
+    {
+      "model_alias": "qwen2",
+      "language": "en",
+      "sample_ids": [
+        "belebele_eng_Latn_0",
+        "belebele_eng_Latn_899"
+      ],
+      "samples": 2,
+      "tokens": 411,
+      "collect_seconds": 11.772874355316162,
+      "audit_seconds": 3.8984282040037215,
+      "evaluation": {
+        "run_path": "/home/ubuntu/openact-belebele-20260925/smoke/qwen2/belebele_en/shard_00000_00002",
+        "model": "Qwen2-7B-Instruct",
+        "dataset": "belebele",
+        "evaluator": "parser/belebele",
+        "accuracy": 1.0,
+        "n_correct": 2,
+        "n_evaluated": 2,
+        "n_total": 2,
+        "n_error": 0,
+        "metrics": {
+          "accuracy": 1.0,
+          "n_total": 2,
+          "n_evaluated": 2,
+          "n_correct": 2,
+          "n_incorrect": 0,
+          "n_error": 0,
+          "n_no_ground_truth": 0,
+          "mean_score": 1.0,
+          "std_score": 0.0
+        },
+        "label_path": "labels/correctness.parquet",
+        "pipeline_seconds": 0.006968406029045582,
+        "evaluation_seconds": 0.0011865090345963836,
+        "setup_teardown_and_io_seconds": 0.005781896994449198
+      },
+      "verification": {
+        "samples_deep_checked": [
+          0,
+          1
+        ],
+        "sample_checks": [
+          {
+            "sample_index": 0,
+            "prompt_tokens": 243,
+            "generated_tokens": 177,
+            "hidden_shape": [
+              177,
+              29,
+              3584
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.022580744199993338,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              177
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          },
+          {
+            "sample_index": 1,
+            "prompt_tokens": 272,
+            "generated_tokens": 234,
+            "hidden_shape": [
+              234,
+              29,
+              3584
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.035809939385954684,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              234
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": true
+          }
+        ],
+        "fixed_shape_exact_replay_and_causality": true,
+        "fixed_shape_max_relative_l2_error": 0.0,
+        "max_relative_l2_error": 0.035809939385954684,
+        "stored_array_check_seconds": 0.16158319998066872,
+        "causal_replay_seconds": 3.708763370057568
+      },
+      "peak_gpu_bytes": 15435313152,
+      "run_path": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/smoke/qwen2/belebele_en/shard_00000_00002",
+      "stored_bytes": 69124817,
+      "transfer_seconds": 4.258705257088877
+    },
+    {
+      "model_alias": "qwen2",
+      "language": "de",
+      "sample_ids": [
+        "belebele_deu_Latn_0",
+        "belebele_deu_Latn_899"
+      ],
+      "samples": 2,
+      "tokens": 256,
+      "collect_seconds": 7.368231534957886,
+      "audit_seconds": 1.209645931958221,
+      "evaluation": {
+        "run_path": "/home/ubuntu/openact-belebele-20260925/smoke/qwen2/belebele_de/shard_00000_00002",
+        "model": "Qwen2-7B-Instruct",
+        "dataset": "belebele",
+        "evaluator": "parser/belebele",
+        "accuracy": 1.0,
+        "n_correct": 2,
+        "n_evaluated": 2,
+        "n_total": 2,
+        "n_error": 0,
+        "metrics": {
+          "accuracy": 1.0,
+          "n_total": 2,
+          "n_evaluated": 2,
+          "n_correct": 2,
+          "n_incorrect": 0,
+          "n_error": 0,
+          "n_no_ground_truth": 0,
+          "mean_score": 1.0,
+          "std_score": 0.0
+        },
+        "label_path": "labels/correctness.parquet",
+        "pipeline_seconds": 0.007078249007463455,
+        "evaluation_seconds": 0.001168559887446463,
+        "setup_teardown_and_io_seconds": 0.005909689120016992
+      },
+      "verification": {
+        "samples_deep_checked": [
+          0,
+          1
+        ],
+        "sample_checks": [
+          {
+            "sample_index": 0,
+            "prompt_tokens": 304,
+            "generated_tokens": 101,
+            "hidden_shape": [
+              101,
+              29,
+              3584
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.022610140277734985,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              101
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          },
+          {
+            "sample_index": 1,
+            "prompt_tokens": 313,
+            "generated_tokens": 155,
+            "hidden_shape": [
+              155,
+              29,
+              3584
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.02242394154029937,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              155
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          }
+        ],
+        "fixed_shape_exact_replay_and_causality": true,
+        "fixed_shape_max_relative_l2_error": 0.0,
+        "max_relative_l2_error": 0.022610140277734985,
+        "stored_array_check_seconds": 0.11582753097172827,
+        "causal_replay_seconds": 1.0718382969498634
+      },
+      "peak_gpu_bytes": 15420652544,
+      "run_path": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/smoke/qwen2/belebele_de/shard_00000_00002",
+      "stored_bytes": 43501806,
+      "transfer_seconds": 2.2185760569991544
+    },
+    {
+      "model_alias": "qwen2",
+      "language": "zh",
+      "sample_ids": [
+        "belebele_zho_Hans_0",
+        "belebele_zho_Hans_899"
+      ],
+      "samples": 2,
+      "tokens": 517,
+      "collect_seconds": 14.69265627861023,
+      "audit_seconds": 3.0413560289889574,
+      "evaluation": {
+        "run_path": "/home/ubuntu/openact-belebele-20260925/smoke/qwen2/belebele_zh/shard_00000_00002",
+        "model": "Qwen2-7B-Instruct",
+        "dataset": "belebele",
+        "evaluator": "parser/belebele",
+        "accuracy": 1.0,
+        "n_correct": 2,
+        "n_evaluated": 2,
+        "n_total": 2,
+        "n_error": 0,
+        "metrics": {
+          "accuracy": 1.0,
+          "n_total": 2,
+          "n_evaluated": 2,
+          "n_correct": 2,
+          "n_incorrect": 0,
+          "n_error": 0,
+          "n_no_ground_truth": 0,
+          "mean_score": 1.0,
+          "std_score": 0.0
+        },
+        "label_path": "labels/correctness.parquet",
+        "pipeline_seconds": 0.0070822000270709395,
+        "evaluation_seconds": 0.0011881989194080234,
+        "setup_teardown_and_io_seconds": 0.005894001107662916
+      },
+      "verification": {
+        "samples_deep_checked": [
+          0,
+          1
+        ],
+        "sample_checks": [
+          {
+            "sample_index": 0,
+            "prompt_tokens": 225,
+            "generated_tokens": 250,
+            "hidden_shape": [
+              250,
+              29,
+              3584
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.024154186527316,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              250
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          },
+          {
+            "sample_index": 1,
+            "prompt_tokens": 284,
+            "generated_tokens": 267,
+            "hidden_shape": [
+              267,
+              29,
+              3584
+            ],
+            "finish_reason": "eos",
+            "max_relative_l2_error": 0.027044805169659673,
+            "prefix_forwards_checked": 4,
+            "prefix_lengths_checked": [
+              0,
+              1,
+              8,
+              267
+            ],
+            "fixed_shape_exact_replay_and_causality": true,
+            "fixed_shape_max_relative_l2_error": 0.0,
+            "variable_shape_prefix_exceeds_nominal_tolerance": false
+          }
+        ],
+        "fixed_shape_exact_replay_and_causality": true,
+        "fixed_shape_max_relative_l2_error": 0.0,
+        "max_relative_l2_error": 0.027044805169659673,
+        "stored_array_check_seconds": 0.20897406700532883,
+        "causal_replay_seconds": 2.8001583869336173
+      },
+      "peak_gpu_bytes": 15459848704,
+      "run_path": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/smoke/qwen2/belebele_zh/shard_00000_00002",
+      "stored_bytes": 86782064,
+      "transfer_seconds": 3.9975212680874392
+    }
+  ],
+  "context_checks": {
+    "llama32/en": {
+      "max_prompt_tokens": 445,
+      "context_limit": 131072,
+      "no_response_space": 0,
+      "reduced_generation_budget": 0
+    },
+    "llama32/de": {
+      "max_prompt_tokens": 647,
+      "context_limit": 131072,
+      "no_response_space": 0,
+      "reduced_generation_budget": 0
+    },
+    "llama32/zh": {
+      "max_prompt_tokens": 540,
+      "context_limit": 131072,
+      "no_response_space": 0,
+      "reduced_generation_budget": 0
+    },
+    "qwen2/en": {
+      "max_prompt_tokens": 430,
+      "context_limit": 32768,
+      "no_response_space": 0,
+      "reduced_generation_budget": 0
+    },
+    "qwen2/de": {
+      "max_prompt_tokens": 630,
+      "context_limit": 32768,
+      "no_response_space": 0,
+      "reduced_generation_budget": 0
+    },
+    "qwen2/zh": {
+      "max_prompt_tokens": 451,
+      "context_limit": 32768,
+      "no_response_space": 0,
+      "reduced_generation_budget": 0
+    }
+  },
+  "gpu_complete_smoke_sha256": "3ac661a05e6389f43346b4b339e1c0f6048682e857f2b1203ad1198a8bc8264f",
+  "scope": "All six smoke cells passed source runner array checks, exact replay/causality checks, evaluation and file-hash publication; this audit rechecks receipts and summaries."
+}
