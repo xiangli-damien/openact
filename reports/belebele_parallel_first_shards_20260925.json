@@ -1,0 +1,73 @@
+{
+  "at": "2026-09-26T00:41:45.825687+00:00",
+  "workers": {
+    "llama32": {
+      "completed": 192,
+      "observed_parallel_samples": 32,
+      "tokens": 7780,
+      "seconds": {
+        "collect_seconds": 185.0367453098297,
+        "audit_seconds": 2.4211269509978592,
+        "eval_seconds": 0.015122601063922048,
+        "transfer_seconds": 21.121269533992745
+      },
+      "seconds_per_sample": 6.518570762371382,
+      "remaining_hours": 4.541270964452063,
+      "observed_peak_allocated_gib": 2.401606559753418,
+      "all_validation_passed": true,
+      "rows": [
+        {
+          "model_alias": "llama32",
+          "language": "en",
+          "start": 160,
+          "stop": 192,
+          "samples": 32,
+          "tokens": 7780,
+          "collect_started_at": "2026-09-26T00:38:15.322745+00:00",
+          "created_at": "2026-09-26T00:41:22.868631+00:00",
+          "transferred_at": "2026-09-26T00:41:44.021053+00:00",
+          "collect_seconds": 185.0367453098297,
+          "audit_seconds": 2.4211269509978592,
+          "transfer_seconds": 21.121269533992745,
+          "run_path": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/full/llama32/belebele_en/shard_00160_00192"
+        }
+      ]
+    },
+    "qwen2": {
+      "completed": 32,
+      "observed_parallel_samples": 32,
+      "tokens": 5388,
+      "seconds": {
+        "collect_seconds": 167.4314568042755,
+        "audit_seconds": 8.73506976896897,
+        "eval_seconds": 0.013957321993075311,
+        "transfer_seconds": 40.35655683197547
+      },
+      "seconds_per_sample": 6.766782522725407,
+      "remaining_hours": 5.014937714064274,
+      "observed_peak_allocated_gib": 14.40123987197876,
+      "all_validation_passed": true,
+      "rows": [
+        {
+          "model_alias": "qwen2",
+          "language": "en",
+          "start": 0,
+          "stop": 32,
+          "samples": 32,
+          "tokens": 5388,
+          "collect_started_at": "2026-09-26T00:38:08.188368+00:00",
+          "created_at": "2026-09-26T00:41:04.441509+00:00",
+          "transferred_at": "2026-09-26T00:41:44.814407+00:00",
+          "collect_seconds": 167.4314568042755,
+          "audit_seconds": 8.73506976896897,
+          "transfer_seconds": 40.35655683197547,
+          "run_path": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/full/qwen2/belebele_en/shard_00000_00032"
+        }
+      ]
+    }
+  },
+  "method": "First complete production shard per model under concurrent execution; extrapolation not a controlled matched-workload speedup benchmark",
+  "peak_observed_gpu_mib": 18367,
+  "ssd_free_gib": 117.29005813598633,
+  "remaining_hours_first_shard_point_estimate": 5.014937714064274
+}
