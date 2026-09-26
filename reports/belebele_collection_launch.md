@@ -1,5 +1,13 @@
 # BELEBELE full collection: Llama-3.2-1B and Qwen2-7B
 
+## Completed 2026-09-26
+
+Full collection completed **05:20:51 UTC**, with root `_SUCCESS`, both worker exits0, and **5,400/5,400** labeled responses across six900-rowcells. Qwen completed05:11:16UTC; Llama completed05:20:42UTC.174publishedshards contain1,118,216generatedtokens and111,129,167,476bytes (~103.5GiB). Smoke12 is separate. See `belebele_complete_20260926.json` for coverage, label counts, completion hashes and audit scope. All source/metadata/label hashes were rechecked; publisher all-file receipts remain present; latestshard eachmodel independently rehashed and first/last activation arrays rechecked for full layers, terminal token, prompt-last, means andpre/postRMS. Evaluation errors0;1,801incorrect answers retained. Raw data staysat `/lambda/nfs/dami/openact/runs/belebele_full_20260925/full/{llama32,qwen2}/belebele_{en,de,zh}`.
+
+The user subsequently cancelled Qwen MATH reliability and authorized HSS diagonal GMM on these two BELEBELE datasets. Collection is finished; do not restart workers. HSS owns the new fitting protocol and monitoring.
+
+## Original launch and provenance
+
 Authorized 2026-09-25: two models, English `eng_Latn`, German `deu_Latn`, simplified Chinese `zho_Hans`; 900 test rows per language and model, 5,400 full responses. Fixed dataset commit `7899cdfa4e1e0d733fd77c848e2c273cb1d32be2`. No fitting or steering in this job.
 
 `configs/belebele_full.toml` pins both model revisions. Raw passages/questions/options remain in their source language. Existing `zot` instructions are English, request step-by-step reasoning and final `Answer: A/B/C/D`. Both models use their native chat template. Generation matches the existing MATH/MMLU OpenAct configuration: BF16 HF transformers, greedy, seed42, maximum2048 new tokens; inherited pinned model generation defaults are saved explicitly. Qwen's historical repetition penalty1.05 is preserved, not silently changed to the steering setting1.0.

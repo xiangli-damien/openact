@@ -1,0 +1,154 @@
+{
+  "model": "Qwen/Qwen2-7B-Instruct",
+  "completed_at": "2026-09-26T05:11:16.104317+00:00",
+  "success": {
+    "samples": 2700,
+    "fingerprint": "e2fd068d9872295d2255f237ae6529284dd821cd4af1790dd1b08354c8f58923",
+    "status_sha256": "88205d837c1253a37d396439e7dfaf99e2e29353d194214087ef89682c59eff7",
+    "completed_at": "2026-09-26T05:11:16.199890+00:00"
+  },
+  "languages": {
+    "en": {
+      "samples": 900,
+      "correct": 797
+    },
+    "de": {
+      "samples": 900,
+      "correct": 767
+    },
+    "zh": {
+      "samples": 900,
+      "correct": 741
+    }
+  },
+  "samples": 2700,
+  "generated_tokens": 415505,
+  "stored_bytes": 70268600410,
+  "persistent_data": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/full/qwen2",
+  "audit": {
+    "at": "2026-09-26T05:17:26.631991+00:00",
+    "status": "healthy",
+    "collection": {
+      "snapshot_updated_at": "2026-09-26T05:17:16.530172+00:00",
+      "completed_published": 5332,
+      "expected": 5400,
+      "coverage": {
+        "llama32/en": 900,
+        "llama32/de": 900,
+        "llama32/zh": 832,
+        "qwen2/en": 900,
+        "qwen2/de": 900,
+        "qwen2/zh": 900
+      },
+      "smoke_count_separate": 12,
+      "models": {
+        "llama32": {
+          "published_samples_snapshot": 2632,
+          "pid": 503810,
+          "status": "running",
+          "language_in_progress": "zh",
+          "range_in_progress": [
+            832,
+            864
+          ],
+          "activity": "collecting",
+          "recent_shards": 8,
+          "seconds_per_published_response": 4.7787034882812485,
+          "remaining_hours_point": 0.09026439922309025,
+          "eta_utc_point": "2026-09-26T05:22:50.482303+00:00",
+          "latest_shard_full_hash_checked": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/full/llama32/belebele_zh/shard_00800_00832",
+          "file_hashes_checked": 774,
+          "first_last_arrays_checked": [
+            {
+              "sample_id": "belebele_zho_Hans_800",
+              "tokens": 48,
+              "hidden_shape": [
+                48,
+                17,
+                2048
+              ],
+              "passed": true
+            },
+            {
+              "sample_id": "belebele_zho_Hans_831",
+              "tokens": 237,
+              "hidden_shape": [
+                237,
+                17,
+                2048
+              ],
+              "passed": true
+            }
+          ]
+        },
+        "qwen2": {
+          "published_samples_snapshot": 2700,
+          "pid": 503811,
+          "status": "complete",
+          "language_in_progress": "zh",
+          "range_in_progress": [
+            896,
+            900
+          ],
+          "activity": "complete",
+          "recent_shards": 8,
+          "seconds_per_published_response": 6.738639074561402,
+          "remaining_hours_point": 0.0,
+          "eta_utc_point": "2026-09-26T05:17:26.572890+00:00",
+          "latest_shard_full_hash_checked": "/lambda/nfs/dami/openact/runs/belebele_full_20260925/full/qwen2/belebele_zh/shard_00896_00900",
+          "file_hashes_checked": 324,
+          "first_last_arrays_checked": [
+            {
+              "sample_id": "belebele_zho_Hans_896",
+              "tokens": 170,
+              "hidden_shape": [
+                170,
+                29,
+                3584
+              ],
+              "passed": true
+            },
+            {
+              "sample_id": "belebele_zho_Hans_899",
+              "tokens": 267,
+              "hidden_shape": [
+                267,
+                29,
+                3584
+              ],
+              "passed": true
+            }
+          ]
+        }
+      },
+      "published_shards_audited": 171,
+      "incorrect_labels_retained": 1760,
+      "evaluation_errors": 0,
+      "receipt_bytes": 110324785155,
+      "root_success": false,
+      "frozen_source_data_versions_and_generation_verified": true,
+      "all_published_metadata_and_labels_sha_rechecked": true,
+      "all_shards_passed_collector_array_and_replay_audits": true,
+      "latest_each_model_full_file_hash_and_first_last_arrays_independently_rechecked": true,
+      "eta_note": "Last8 published shards including auditing and publication; concurrent Chinese throughput provisional."
+    },
+    "resources": {
+      "gpu": "NVIDIA A100-SXM4-40GB, 3449 MiB, 40960 MiB, 0 %",
+      "gpu_processes": "503810, 3440 MiB",
+      "ssd_free_gib": 116.9206771850586,
+      "required_free_gib": 105.01797485351562,
+      "ram": "total        used        free      shared  buff/cache   available\nMem:          221448        5667        4451          24      211329      213792\nSwap:              0           0           0"
+    },
+    "reliability": {
+      "pid": 505843,
+      "process_alive": true,
+      "phase": "waiting_for_collection",
+      "fits_started": false,
+      "frozen_code_sha_verified": true,
+      "updated_at": "2026-09-26T05:17:23.851133+00:00"
+    },
+    "daily_git": "Sep25 check already completed; Sep26 21:00 NewYork not yet due",
+    "notification": "Qwen model completed; Llama still collecting; reliability waiting"
+  },
+  "note": "Full Qwen coverage and metadata/labels checks verified; publisher all-file checksums retained. Independent latest-shard all-file hash and first/last activation checks pass. No new GPU replay in monitor."
+}
