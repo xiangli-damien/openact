@@ -5,6 +5,7 @@ execution-only continuation: identical data, decoding, capture, shard IDs and
 verification. A parent holds the legacy job lock; workers own distinct models.
 """
 import argparse
+import errno
 from dataclasses import asdict
 import fcntl
 from importlib.metadata import version
@@ -31,7 +32,15 @@ from scripts.run_belebele_collection import (
 
 
 def read(path):
-    return json.loads(Path(path).read_text())
+    # Status files are atomically replaced on NFS. A reader may briefly see an
+    # old handle during the rename; reopen the path rather than failing the job.
+    for attempt in range(10):
+        try:
+            return json.loads(Path(path).read_text())
+        except OSError as exc:
+            if exc.errno not in (errno.ESTALE, errno.ENOENT) or attempt == 9:
+                raise
+            time.sleep(.2)
 
 
 def verify_continuation(plan, cfg, base, generation, capture, inputs):

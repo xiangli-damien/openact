@@ -1,9 +1,26 @@
 from dataclasses import dataclass
+import errno
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from scripts import run_belebele_parallel as parallel
+
+
+def test_atomic_nfs_status_reopens_stale_handle(tmp_path, monkeypatch):
+    path=tmp_path/'status.json'; path.write_text('{"status":"running"}')
+    original=Path.read_text
+    calls=[]
+    def flaky(self, *args, **kwargs):
+        calls.append(self)
+        if len(calls)==1:
+            raise OSError(errno.ESTALE,'Stale file handle')
+        return original(self,*args,**kwargs)
+    monkeypatch.setattr(Path,'read_text',flaky)
+    monkeypatch.setattr(parallel.time,'sleep',lambda _:None)
+    assert parallel.read(path)=={'status':'running'}
+    assert len(calls)==2
 
 
 @dataclass
