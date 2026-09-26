@@ -22,3 +22,16 @@ SSD staging `/home/ubuntu/openact-belebele-20260925`; persistent root `/lambda/n
 Source commit `a35026c` passed58 tests locally and58 on Lambda, then deployed through GitHub. WorkerPID503009 started2026-09-26 00:21:57UTC. Frozen fingerprint `e2fd068d9872295d2255f237ae6529284dd821cd4af1790dd1b08354c8f58923`.
 
 All six real GPU smoke cells completed12/12 at00:23:40UTC and passed exact fixed-shape teacher-forced replay/causality, full array checks, zero-error evaluation and SHA-verified publication. See `belebele_smoke_20260925.json`. Variable-length BF16 prefix comparisons are separately recorded diagnostics and may differ; the unchanged exact fixed-shape checks passed. Full queue started00:23:40UTC; first Llama English32-row shard was actively collecting with no errors at the first checkpoint. Full5400 is **running, not complete**; actual current progress is in the remote job_status.json. Half-hour monitor is active and preserves daily21:00 New York Git checks.
+
+## User-authorized parallel continuation
+
+The user's next instruction authorizes collecting both models concurrently and requests an ETA. `scripts/run_belebele_parallel.py` implements an execution-only handoff; the original runner, frozen plan, dataset, generation settings and capture code are unchanged and their hashes are checked before starting. New execution provenance is saved under `executions/`, and every newly collected shard carries its execution hash. Previously published shards are SHA-verified and resumed without collection. A stopped, incomplete shard is preserved separately and recollected as a complete shard.
+
+After stopping the owned legacy worker, launch from the same environment:
+
+```bash
+OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 \
+  .venv/bin/python -u -m scripts.run_belebele_parallel
+```
+
+The supervisor holds the original job lock and starts one Llama and one Qwen worker, each with its own model lock and language queue. It writes combined `job_status.json`; detailed worker status is `full/{model}/job_status.json`, logs are `parallel_{model}.log`, current PIDs are in `parallel_launch.json`. `parallel_resources.jsonl` records combined GPU memory and durable progress every10 seconds. SSD admission reserves both worst-case next shards plus50GiB. Full completion still requires two independently verified2,700-row coverages and a combined5,400 rows; only then is root `_SUCCESS` written. No dataset row is omitted and no validation threshold changes. Runtime throughput and memory should be measured before claiming a concurrency speedup; same-GPU concurrency does not imply a2× speedup.
